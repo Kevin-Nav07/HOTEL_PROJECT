@@ -1,14 +1,28 @@
-from flask import Flask, render_template, request, session, redirect
+from flask import Flask, flash, render_template, request, session, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import create_engine
 from sqlalchemy import Table, Column, Integer, String, MetaData, ForeignKey, text
 from sqlalchemy import inspect
+from flask_login import UserMixin
+from flask_login import login_user,logout_user,login_manager,LoginManager
+from flask_login import login_required,current_user
+from flask_mail import Mail
 
 
 db = SQLAlchemy()
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://root:@localhost/hotel_db"
 db.init_app(app)
+
+app.secret_key = 'kevin_science'
+
+##login
+login_manager = LoginManager(app)
+login_manager.login_view = 'login'
+
+@login_manager.user_loader
+def load_user(user_id):
+    return Customer.query.get(int(user_id))
 
 # Creating db models (tables)
 class HotelChain(db.Model):
@@ -19,13 +33,21 @@ class HotelChain(db.Model):
     PhoneNumber = db.Column(db.String(20))  # Change to String if your phone numbers include non-numeric characters
     Email = db.Column(db.String(255))
 
-class Customer(db.Model):
+class Customer(UserMixin,db.Model):
     __tablename__ = 'customer'
     ID = db.Column(db.Integer, primary_key=True)
     Fullname = db.Column(db.String(255))
     Username = db.Column(db.String(255), unique=True)
     Password = db.Column(db.String(255))
     Email = db.Column(db.String(255), unique=True)
+    def get_id(self):
+        return self.ID
+
+class User(UserMixin,db.Model):
+    id=db.Column(db.Integer,primary_key=True)
+    username=db.Column(db.String(50))
+    email=db.Column(db.String(50),unique=True)
+    password=db.Column(db.String(1000))
 
 
 
@@ -56,8 +78,8 @@ def hello_world():
 def hotels():
     return render_template("hotels.html")
 @app.route("/bookings")
-def hbookings():
-    return render_template("bookings.html")
+def bookings():
+    return render_template("bookings.html", username=current_user.Username)
 
 @app.route("/rooms")
 def rooms():
@@ -103,14 +125,21 @@ def signup():
 
     return render_template("signup1.html")
 
-@app.route("/login", methods = ['POST', 'GET'])
+
+@app.route("/login", methods=['POST', 'GET'])
 def login():
-   if request.method == "POST":
+    if request.method == "POST":
         username = request.form.get('username')
         password = request.form.get('password')
-        
-       
-   return render_template("login1.html")
+        customer = Customer.query.filter_by(Username=username).first()
+
+        if customer and customer.Password == password:  
+            login_user(customer)
+            print("login success", username )
+            return redirect(url_for('bookings'))
+        else:
+            flash("Invalid credentials")
+    return render_template('login1.html')
 
 @app.route("/logout")
 def logout():

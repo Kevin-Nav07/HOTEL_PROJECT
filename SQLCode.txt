@@ -1,0 +1,107 @@
+-- Hotel Chain table remains unchanged
+CREATE TABLE HotelChain (
+    NAME VARCHAR(255) PRIMARY KEY,
+    ADDRESS VARCHAR(255) NOT NULL,
+    PhoneNumber VARCHAR(20),
+    NumberOfHotels INT,
+    Email VARCHAR(255) NOT NULL
+);
+
+-- Hotel table remains unchanged
+CREATE TABLE Hotel (
+    ADDRESS VARCHAR(255) PRIMARY KEY,
+    Email VARCHAR(255) NOT NULL,
+    NumberOfRooms INT,
+    Rating INT CHECK (Rating BETWEEN 1 AND 5),
+    ChainName VARCHAR(255),
+    FOREIGN KEY (ChainName) REFERENCES HotelChain(NAME)
+);
+
+-- Room table with composite primary key remains unchanged
+CREATE TABLE Room (
+    RoomNumber VARCHAR(255),
+    HotelAddress VARCHAR(255),
+    Extendability BOOLEAN,
+    Price DECIMAL(10,2),
+    View ENUM('sea', 'mountain', 'none'),
+    Size ENUM('single', 'double', 'suite'),
+    PRIMARY KEY (RoomNumber, HotelAddress),
+    FOREIGN KEY (HotelAddress) REFERENCES Hotel(ADDRESS)
+);
+
+-- Customer table modified to include username, password, and email
+CREATE TABLE Customer (
+    ID INT AUTO_INCREMENT PRIMARY KEY,
+    Username VARCHAR(255) UNIQUE,
+    Password VARCHAR(255),
+    Email VARCHAR(255) UNIQUE,
+    Fullname VARCHAR(255),
+    Address VARCHAR(255)
+);
+
+-- Employee table modified to include username, password, and email
+CREATE TABLE Employee (
+    ID INT AUTO_INCREMENT PRIMARY KEY,
+    Username VARCHAR(255) UNIQUE,
+    Password VARCHAR(255),
+    Email VARCHAR(255) UNIQUE,
+    Address VARCHAR(255),
+    Fullname VARCHAR(255),
+    HotelAddress VARCHAR(255),
+    FOREIGN KEY (HotelAddress) REFERENCES Hotel(ADDRESS)
+);
+
+-- BooksAt relationship table remains unchanged
+CREATE TABLE BooksAt (
+    HotelAddress VARCHAR(255),
+    CustomerID INT,
+    PRIMARY KEY (HotelAddress, CustomerID),
+    FOREIGN KEY (HotelAddress) REFERENCES Hotel(ADDRESS),
+    FOREIGN KEY (CustomerID) REFERENCES Customer(ID)
+);
+
+-- ResponsibleFor relationship table remains unchanged
+CREATE TABLE ResponsibleFor (
+    EmployeeID INT,
+    CustomerID INT,
+    PRIMARY KEY (EmployeeID, CustomerID),
+    FOREIGN KEY (EmployeeID) REFERENCES Employee(ID),
+    FOREIGN KEY (CustomerID) REFERENCES Customer(ID)
+);
+
+-- Amenities table linked directly to Room modified to accommodate composite foreign key
+CREATE TABLE Amenities (
+    RoomNumber VARCHAR(255),
+    HotelAddress VARCHAR(255),
+    TV BOOLEAN,
+    Fridge BOOLEAN,
+    AirCondition BOOLEAN,
+    PRIMARY KEY (RoomNumber, HotelAddress),
+    FOREIGN KEY (RoomNumber, HotelAddress) REFERENCES Room(RoomNumber, HotelAddress)
+);
+
+CREATE TABLE BookingHistory (
+    BookingID INT AUTO_INCREMENT PRIMARY KEY,
+    CustomerID INT,
+    RoomNumber VARCHAR(255),
+    HotelAddress VARCHAR(255),
+    BookingDate DATE,
+    StartDate DATE,
+    EndDate DATE,
+    Status ENUM('booked', 'cancelled', 'completed'),
+    FOREIGN KEY (CustomerID) REFERENCES Customer(ID),
+    FOREIGN KEY (RoomNumber, HotelAddress) REFERENCES Room(RoomNumber, HotelAddress)
+);
+
+CREATE TABLE RentingHistory (
+    RentingID INT AUTO_INCREMENT PRIMARY KEY,
+    CustomerID INT,
+    RoomNumber VARCHAR(255),
+    HotelAddress VARCHAR(255),
+    RentingDate DATE,
+    StartDate DATE,
+    EndDate DATE,
+    Status ENUM('rented', 'completed'),
+    FOREIGN KEY (CustomerID) REFERENCES Customer(ID),
+    FOREIGN KEY (RoomNumber, HotelAddress) REFERENCES Room(RoomNumber, HotelAddress)
+);
