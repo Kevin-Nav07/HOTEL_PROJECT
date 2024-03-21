@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/Styles.css') }}">
+    <meta name="viewport" content="width=device-wdith, initial-scale=1.0">
+    <!-- the link to the boostrap cdn  -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
+
+    <link rel="stylesheet" href=" https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+
+    <section class="header">
+        <div class="container">
+            <div id="nav-bar">
+                <nav>
+
+                    <ul>
+                        <li class="nav-item"><a href="/"> Home </a></li>
+                        <li class="nav-item"><a href="/hotels"> Hotels</a></li>
+                        <li class="nav-item"><a href="/bookings"> Bookings</a></li>
+                        <li class="nav-item"><a href="/rooms"> Rooms </a></li>
+                        <li class="nav-item"><a href="/login"> login</a></li>
+                        <li class="nav-item"><a href="/signup"> Signup</a></li>
+
+                    </ul>
+                </nav>
+
+            </div>
+
+        </div>
+        <h1>Login</h1>
+        <p>Enter your details</p>
+
+        <!-- bootstrap search button code -->
+
+        <div class="signupcontainer">
+
+            <div class="row">
+                <div class="col-md-3"></div>
+                <div class="col-md-6">
+                    <form id="signupForm" action="/login" method="POST">
+
+                        <!-- UserName Field -->
+                        <div class="form-group">
+                            <label for="username">UserName</label>
+                            <input type="text" class="form-control" id="username" name="username" required>
+                        </div>
+
+                        <!-- Password Field -->
+                        <div class="form-group">
+                            <label for="password">Password</label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                        </div>
+
+                        <button type="submit" class="btn btn-info btn-sm btn-block">Login</button>
+                    </form>
+                </div>
+                <div class="col-md-3"></div>
+            </div>
+        </div>
+
+
+        </div>
+
+    </section>
+
+
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+        crossorigin="anonymous"></script>
+
+</body>
+
+</html>

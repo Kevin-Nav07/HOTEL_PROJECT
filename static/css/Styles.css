@@ -1,0 +1,330 @@
+* {
+    padding: 0;
+    margin: 0;
+}
+
+.header {
+    height: 100vh;
+    background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url(../Images/homepagehotels.jpg);
+    background-size: auto;
+    background-position: center;
+    background-attachment: fixed;
+    padding-top: 20px;
+    text-align: center;
+    color: #fff;
+
+
+
+}
+
+
+.header img {
+    /* editing logo */
+    width: 120px;
+    height: 100px;
+    float: left;
+
+}
+
+
+
+/* editing the main text on the home page */
+.header h1 {
+    padding-top: 230px;
+    padding-bottom: 0;
+    font-size: 55px;
+}
+
+.header p {
+    margin: 18px 0;
+}
+
+
+/* 
+Search box */
+
+.input-group {
+    width: 90%;
+    max-width: 500px;
+    border-radius: 30px;
+    background: #fff;
+    margin: auto;
+    padding: 2px;
+
+}
+
+.form-control {
+    /* making the search bar circular */
+    border: 0 !important;
+    border-radius: 30px !important;
+    margin: 2px;
+    box-shadow: none !important
+}
+
+.input-group-text {
+    /* for button near search box */
+    width: 100px;
+    height: 40px;
+    background-image: linear-gradient(#48065e, #7306b6);
+    border: 0 !important;
+    color: #fff !important;
+    padding: 0 25px !important;
+    border-radius: 50px !important;
+    box-shadow: none !important;
+    transition: 0.5s;
+
+}
+
+
+/*---------------------------------  Featured section from here --------------------------------------------*/
+
+.features {
+    padding: 100px 0;
+}
+
+h1 {
+    text-align: center;
+    padding-bottom: 30px;
+
+}
+
+.feature-img img {
+    width: 100%;
+
+
+
+}
+
+
+
+
+.feature-img {
+
+    position: relative;
+}
+
+.features .fa {
+    font-size: 15px;
+    color: #5900ab;
+
+}
+
+.feature-details {
+    padding: 20px;
+    text-align: justify;
+
+}
+
+.feature-details h4 {
+    font-weight: 600;
+    margin-top: 20px;
+}
+
+.feature-details .fa {
+    margin-right: 5px;
+}
+
+.feature-box {
+    box-shadow: 0 0 10px 1px rgba(37, 73, 214, 0.18);
+    margin-bottom: 30px;
+    padding-bottom: 10px;
+}
+
+/* ----------------------Gallery section------------------ */
+.gallery {
+    padding: 100px 0;
+    background: #efefef;
+
+
+}
+
+
+
+.gallery-box img {
+    width: 100%;
+    height: 200px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: 1s;
+
+}
+
+.gallery-box img:hover {
+    transform: scale(1.1);
+}
+
+.gallery-box h4 {
+    display: block;
+    font-size: 20px;
+    text-align: center;
+    font-weight: 600;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    color: white;
+    text-shadow: -2px 2px 2px #000;
+    transform: translate(-50%, -50%);
+
+}
+
+.gallery-box {
+
+    position: relative;
+    margin-bottom: 30px;
+
+}
+
+#gal-par {}
+
+
+/* ------------------------banner section ------------------------- */
+.banner {
+    height: 80%;
+    background-image: url(Images/space-bg.jpg);
+    background-position: center;
+    background-size: cover;
+    background-attachment: fixed;
+    padding-top: 14%;
+}
+
+.banner-highlights {
+    padding: 70px 0;
+    background: rgba(0, 0, 0, 0.7);
+    text-align: center;
+    color: white;
+}
+
+
+
+/* -------------------footer section--------------------- */
+
+.footer {
+    padding: 100px 20px;
+    background-image: linear-gradient(#0000008a, #47037499), url(Images/space-bg.jpg);
+    background-size: cover;
+    color: white;
+
+
+}
+
+.footer-logo {
+    width: 150px;
+    margin-top: 15px;
+    margin-bottom: 15px;
+}
+
+.footer h4 {
+    text-align: left;
+    margin-top: 15px;
+    margin-bottom: 25px;
+}
+
+.footer p {
+    font-size: 12px;
+    text-align: justify;
+    padding-right: 35px;
+}
+
+.footer .row .fa {
+    padding-right: 20px;
+    font-size: 15px;
+}
+
+/* -------------------Section--------------------- */
+.sec {
+    position: relative;
+    padding: 100px;
+    background: #efefef;
+}
+
+.sec h2 {
+    font-size: 3.5em;
+    margin-bottom: 10px;
+    color: rgb(0, 0, 0);
+    display: inline;
+
+}
+
+.sec p {
+    font-size: 1em;
+    color: #000;
+
+}
+
+/* -------------------Shopp--------------------- */
+
+.future-section {
+
+    position: relative;
+    padding: 100px;
+    background: #efefef;
+
+}
+
+.future-section h2 {
+    font-size: 3.5em;
+    margin-bottom: 10px;
+    display: inline;
+
+}
+
+.future-section p {
+    font-size: 1em;
+    display: inline;
+}
+
+.future-section img {
+    display: inline;
+    margin-right: 10px;
+    margin-bottom: 5px;
+    float: left;
+    width: 300px;
+    /* you can use % */
+    height: auto;
+}
+
+
+
+
+
+.nav-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+
+
+
+
+}
+
+nav ul li {
+    display: inline-block;
+    list-style: none;
+    margin: 10px 20px;
+}
+
+nav ul li a {
+    color: rgb(255, 255, 255);
+    text-decoration: none;
+    font-size: 25px;
+    position: relative;
+}
+
+nav ul li a::after {
+    content: '';
+    width: 0;
+    height: 3px;
+    background-color: rgb(80, 8, 215);
+
+
+    position: absolute;
+    left: 0;
+    bottom: -6px;
+    transition: 0.5s;
+}
+
+nav ul li a:hover::after {
+    width: 100%;
+
+}
