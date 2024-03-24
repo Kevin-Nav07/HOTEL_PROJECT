@@ -1,4 +1,4 @@
-from flask import Flask, flash, render_template, request, session, redirect, url_for
+from flask import Flask, flash, render_template, request, session, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import create_engine
 from sqlalchemy import Table, Column, Integer, String, MetaData, ForeignKey, text
@@ -22,7 +22,7 @@ login_manager.login_view = 'login'
 
 @login_manager.user_loader
 def load_user(user_id):
-    return Customer.query.get(int(user_id))
+    return Users.query.get(int(user_id))
 
 # Creating db models (tables)
 class HotelChain(db.Model):
@@ -43,11 +43,14 @@ class Customer(UserMixin,db.Model):
     def get_id(self):
         return self.ID
 
-class User(UserMixin,db.Model):
-    id=db.Column(db.Integer,primary_key=True)
-    username=db.Column(db.String(50))
-    email=db.Column(db.String(50),unique=True)
-    password=db.Column(db.String(1000))
+class Users(UserMixin,db.Model):
+    Userid=db.Column(db.Integer,primary_key=True)
+    Username=db.Column(db.String(50))
+    Password=db.Column(db.String(1000))
+    Email=db.Column(db.String(50),unique=True)
+   
+    def get_id(self):
+        return self.Userid
 
 
 
@@ -79,7 +82,10 @@ def hotels():
     return render_template("hotels.html")
 @app.route("/bookings")
 def bookings():
-    return render_template("bookings.html", username=current_user.Username)
+    if not current_user.is_authenticated:
+        return redirect(url_for("login"))
+    else:
+        return render_template('bookings.html',username=current_user.Username)
 
 @app.route("/rooms")
 def rooms():
@@ -97,14 +103,14 @@ def signup():
         # ensure your database schema is set up to handle it accordingly.
 
         # Wrap the raw SQL query with the text() function
-        existing_customer = Customer.query.filter((Customer.Username == username) | (Customer.Email == email)).first()
+        existing_customer = Users.query.filter((Users.Username == username) | (Users.Email == email)).first()
         if existing_customer:
             # If an existing customer is found, return an error message or redirect
             print('Signup failed: username or email already exists')
             return render_template("signup1.html")
         raw_sql_query = text("""
-            INSERT INTO customer (Fullname, Username, Email, Password) 
-            VALUES (:name, :username, :email, :password);
+            INSERT INTO users (Username, Password, Email) 
+            VALUES (:username, :password, :email);
         """)
 
         try:
@@ -131,19 +137,22 @@ def login():
     if request.method == "POST":
         username = request.form.get('username')
         password = request.form.get('password')
-        customer = Customer.query.filter_by(Username=username).first()
+        customer = Users.query.filter_by(Username=username).first()
 
         if customer and customer.Password == password:  
             login_user(customer)
-            print("login success", username )
+            flash("Login Success", "Primary")
             return redirect(url_for('bookings'))
         else:
-            flash("Invalid credentials")
+            flash("Invalid credentials", "danger")
     return render_template('login1.html')
 
 @app.route("/logout")
+@login_required
 def logout():
-   return render_template("login1.html")
+   logout_user()
+   print("logged out")
+   return redirect(url_for('login'))
 
 
 if __name__ == '__main__':

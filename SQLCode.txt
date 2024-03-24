@@ -7,13 +7,14 @@ CREATE TABLE HotelChain (
     Email VARCHAR(255) NOT NULL
 );
 
--- Hotel table remains unchanged
+-- Modifying the Hotel table to include BranchName
 CREATE TABLE Hotel (
     ADDRESS VARCHAR(255) PRIMARY KEY,
     Email VARCHAR(255) NOT NULL,
     NumberOfRooms INT,
     Rating INT CHECK (Rating BETWEEN 1 AND 5),
     ChainName VARCHAR(255),
+    BranchName VARCHAR(255), -- New column added
     FOREIGN KEY (ChainName) REFERENCES HotelChain(NAME)
 );
 
@@ -29,25 +30,31 @@ CREATE TABLE Room (
     FOREIGN KEY (HotelAddress) REFERENCES Hotel(ADDRESS)
 );
 
--- Customer table modified to include username, password, and email
-CREATE TABLE Customer (
-    ID INT AUTO_INCREMENT PRIMARY KEY,
-    Username VARCHAR(255) UNIQUE,
-    Password VARCHAR(255),
-    Email VARCHAR(255) UNIQUE,
-    Fullname VARCHAR(255),
-    Address VARCHAR(255)
+-- Creating the User table
+CREATE TABLE User (
+    UserID INT AUTO_INCREMENT PRIMARY KEY,
+    Username VARCHAR(255) UNIQUE NOT NULL,
+    Password VARCHAR(255) NOT NULL,
+    Email VARCHAR(255) UNIQUE NOT NULL
 );
 
--- Employee table modified to include username, password, and email
+-- Modifying Customer table to link with User
+CREATE TABLE Customer (
+    ID INT AUTO_INCREMENT PRIMARY KEY,
+    UserID INT, -- Link to User table
+    Fullname VARCHAR(255),
+    Address VARCHAR(255),
+    FOREIGN KEY (UserID) REFERENCES User(UserID)
+);
+
+-- Modifying Employee table to link with User
 CREATE TABLE Employee (
     ID INT AUTO_INCREMENT PRIMARY KEY,
-    Username VARCHAR(255) UNIQUE,
-    Password VARCHAR(255),
-    Email VARCHAR(255) UNIQUE,
+    UserID INT, -- Link to User table
     Address VARCHAR(255),
     Fullname VARCHAR(255),
     HotelAddress VARCHAR(255),
+    FOREIGN KEY (UserID) REFERENCES User(UserID),
     FOREIGN KEY (HotelAddress) REFERENCES Hotel(ADDRESS)
 );
 
@@ -69,7 +76,7 @@ CREATE TABLE ResponsibleFor (
     FOREIGN KEY (CustomerID) REFERENCES Customer(ID)
 );
 
--- Amenities table linked directly to Room modified to accommodate composite foreign key
+-- Amenities table linked directly to Room
 CREATE TABLE Amenities (
     RoomNumber VARCHAR(255),
     HotelAddress VARCHAR(255),
@@ -80,6 +87,7 @@ CREATE TABLE Amenities (
     FOREIGN KEY (RoomNumber, HotelAddress) REFERENCES Room(RoomNumber, HotelAddress)
 );
 
+-- BookingHistory table remains unchanged
 CREATE TABLE BookingHistory (
     BookingID INT AUTO_INCREMENT PRIMARY KEY,
     CustomerID INT,
@@ -93,6 +101,7 @@ CREATE TABLE BookingHistory (
     FOREIGN KEY (RoomNumber, HotelAddress) REFERENCES Room(RoomNumber, HotelAddress)
 );
 
+-- RentingHistory table remains unchanged
 CREATE TABLE RentingHistory (
     RentingID INT AUTO_INCREMENT PRIMARY KEY,
     CustomerID INT,
@@ -105,3 +114,69 @@ CREATE TABLE RentingHistory (
     FOREIGN KEY (CustomerID) REFERENCES Customer(ID),
     FOREIGN KEY (RoomNumber, HotelAddress) REFERENCES Room(RoomNumber, HotelAddress)
 );
+
+
+-- Insert Hotel Chains
+INSERT INTO HotelChain (NAME, ADDRESS, PhoneNumber, NumberOfHotels, Email) VALUES
+('Chain A', 'Address A', '123-456-7890', 8, 'emailA@chain.com'),
+('Chain B', 'Address B', '234-567-8901', 8, 'emailB@chain.com'),
+('Chain C', 'Address C', '345-678-9012', 8, 'emailC@chain.com'),
+('Chain D', 'Address D', '456-789-0123', 8, 'emailD@chain.com'),
+('Chain E', 'Address E', '567-890-1234', 8, 'emailE@chain.com');
+
+
+
+INSERT INTO Hotel (ADDRESS, Email, NumberOfRooms, Rating, ChainName, BranchName) VALUES
+('B1 Address', 'hotelB1@chainB.com', 95, 4, 'Chain B', 'Downtown'),
+('B2 Address', 'hotelB2@chainB.com', 85, 3, 'Chain B', 'Airport'),
+('B3 Address', 'hotelB3@chainB.com', 105, 5, 'Chain B', 'Downtown'),
+('B4 Address', 'hotelB4@chainB.com', 90, 3, 'Chain B', 'Suburb'),
+('B5 Address', 'hotelB5@chainB.com', 80, 4, 'Chain B', 'Beachfront'),
+('B6 Address', 'hotelB6@chainB.com', 110, 5, 'Chain B', 'Downtown'),
+('B7 Address', 'hotelB7@chainB.com', 70, 3, 'Chain B', 'Airport'),
+('B8 Address', 'hotelB8@chainB.com', 100, 4, 'Chain B', 'Suburb');
+
+INSERT INTO Hotel (ADDRESS, Email, NumberOfRooms, Rating, ChainName, BranchName) VALUES
+('C1 Address', 'hotelC1@chainC.com', 100, 4, 'Chain C', 'Downtown'),
+('C2 Address', 'hotelC2@chainC.com', 90, 3, 'Chain C', 'Airport'),
+('C3 Address', 'hotelC3@chainC.com', 120, 5, 'Chain C', 'Downtown'),
+('C4 Address', 'hotelC4@chainC.com', 75, 3, 'Chain C', 'Suburb'),
+('C5 Address', 'hotelC5@chainC.com', 95, 4, 'Chain C', 'Beachfront'),
+('C6 Address', 'hotelC6@chainC.com', 115, 5, 'Chain C', 'Downtown'),
+('C7 Address', 'hotelC7@chainC.com', 85, 3, 'Chain C', 'Airport'),
+('C8 Address', 'hotelC8@chainC.com', 105, 4, 'Chain C', 'Suburb');
+
+INSERT INTO Hotel (ADDRESS, Email, NumberOfRooms, Rating, ChainName, BranchName) VALUES
+('D1 Address', 'hotelD1@chainD.com', 110, 5, 'Chain D', 'Downtown'),
+('D2 Address', 'hotelD2@chainD.com', 80, 3, 'Chain D', 'Airport'),
+('D3 Address', 'hotelD3@chainD.com', 100, 4, 'Chain D', 'Downtown'),
+('D4 Address', 'hotelD4@chainD.com', 90, 3, 'Chain D', 'Suburb'),
+('D5 Address', 'hotelD5@chainD.com', 95, 4, 'Chain D', 'Beachfront'),
+('D6 Address', 'hotelD6@chainD.com', 115, 5, 'Chain D', 'Downtown'),
+('D7 Address', 'hotelD7@chainD.com', 85, 3, 'Chain D', 'Airport'),
+('D8 Address', 'hotelD8@chainD.com', 105, 4, 'Chain D', 'Suburb');
+
+INSERT INTO Hotel (ADDRESS, Email, NumberOfRooms, Rating, ChainName, BranchName) VALUES
+('E1 Address', 'hotelE1@chainE.com', 105, 4, 'Chain E', 'Downtown'),
+('E2 Address', 'hotelE2@chainE.com', 100, 3, 'Chain E', 'Airport'),
+('E3 Address', 'hotelE3@chainE.com', 115, 5, 'Chain E', 'Downtown'),
+('E4 Address', 'hotelE4@chainE.com', 85, 3, 'Chain E', 'Suburb'),
+('E5 Address', 'hotelE5@chainE.com', 90, 4, 'Chain E', 'Beachfront'),
+('E6 Address', 'hotelE6@chainE.com', 120, 5, 'Chain E', 'Downtown'),
+('E7 Address', 'hotelE7@chainE.com', 95, 3, 'Chain E', 'Airport'),
+('E8 Address', 'hotelE8@chainE.com', 110, 4, 'Chain E', 'Suburb');
+
+INSERT INTO Room (RoomNumber, HotelAddress, Extendability, Price, View, Size) VALUES
+('B101', 'B1 Address', FALSE, 95.00, 'none', 'single'),
+('B102', 'B1 Address', TRUE, 145.00, 'sea', 'double'),
+('B103', 'B1 Address', FALSE, 195.00, 'mountain', 'suite'),
+('B104', 'B1 Address', TRUE, 115.00, 'none', 'double'),
+('B105', 'B1 Address', FALSE, 175.00, 'sea', 'suite');
+
+
+
+
+
+
+
+
