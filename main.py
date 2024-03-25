@@ -32,6 +32,7 @@ class HotelChain(db.Model):
     NumberOfHotels = db.Column(db.Integer)
     PhoneNumber = db.Column(db.String(20))  # Change to String if your phone numbers include non-numeric characters
     Email = db.Column(db.String(255))
+    
 
 class Customer(UserMixin,db.Model):
     __tablename__ = 'customer'
@@ -42,13 +43,66 @@ class Customer(UserMixin,db.Model):
     Email = db.Column(db.String(255), unique=True)
     def get_id(self):
         return self.ID
+    
+class Employee(db.Model):
+    __tablename__ = 'employee'
+    ID = db.Column(db.Integer, primary_key=True)
+    UserID = db.Column(db.Integer, db.ForeignKey('user.UserID'))
+    Address = db.Column(db.String(255))
+    Fullname = db.Column(db.String(255))
+    HotelAddress = db.Column(db.String(255), db.ForeignKey('hotel.ADDRESS'))
+    # Relationship to User table if needed
+
+class Room(db.Model):
+    __tablename__ = 'room'
+    RoomNumber = db.Column(db.String(255), primary_key=True)
+    HotelAddress = db.Column(db.String(255), db.ForeignKey('hotel.ADDRESS'), primary_key=True)
+    Extendability = db.Column(db.Boolean)
+    Price = db.Column(db.Numeric(10, 2))
+    View = db.Column(db.String(255))
+    Size = db.Column(db.String(255))
+    # Relationships if needed
+
+class BookingHistory(db.Model):
+    __tablename__ = 'bookinghistory'
+    BookingID = db.Column(db.Integer, primary_key=True)
+    CustomerID = db.Column(db.Integer, db.ForeignKey('customer.ID'))
+    RoomNumber = db.Column(db.String(255), db.ForeignKey('room.RoomNumber'))
+    HotelAddress = db.Column(db.String(255), db.ForeignKey('room.HotelAddress'))
+    BookingDate = db.Column(db.Date)
+    StartDate = db.Column(db.Date)
+    EndDate = db.Column(db.Date)
+    Status = db.Column(db.String(255))
+    # Relationships to Customer and Room tables if needed
+
+class Amenities(db.Model):
+    __tablename__ = 'amenities'
+    RoomNumber = db.Column(db.String(255), db.ForeignKey('room.RoomNumber'), primary_key=True)
+    HotelAddress = db.Column(db.String(255), db.ForeignKey('room.HotelAddress'), primary_key=True)
+    TV = db.Column(db.Boolean)
+    Fridge = db.Column(db.Boolean)
+    AirCondition = db.Column(db.Boolean)
+    # Relationship to Room table if needed
+
+    
+class Hotel(db.Model):
+    __tablename__ = 'hotel'
+    Address = db.Column(db.String(255), primary_key=True)
+    Email = db.Column(db.String(255), nullable=False)
+    NumberOfRooms = db.Column(db.Integer, nullable=False)
+    Rating = db.Column(db.Integer, nullable=False)
+    ChainName = db.Column(db.String(255), db.ForeignKey('hotelchain.NAME'), nullable=False)
+    BranchName = db.Column(db.String(255), nullable=False)  # Assuming you've added a BranchName column
+
+
+    def __repr__(self):
+        return f'<Hotel {self.BranchName} in chain {self.ChainName}>'
 
 class Users(UserMixin,db.Model):
     Userid=db.Column(db.Integer,primary_key=True)
     Username=db.Column(db.String(50))
     Password=db.Column(db.String(1000))
     Email=db.Column(db.String(50),unique=True)
-   
     def get_id(self):
         return self.Userid
 
@@ -80,57 +134,144 @@ def hello_world():
 @app.route("/hotels")
 def hotels():
     return render_template("hotels.html")
-@app.route("/bookings")
+
+@app.route("/bookingView")
+@login_required
+def bookingView():
+    em = current_user.Email
+    query = text("""
+        SELECT bh.*
+        FROM BookingHistory bh
+        JOIN Customer c ON bh.CustomerID = c.ID
+        WHERE c.Email = :email;
+    """)
+    result = db.session.execute(query, {'email': em})
+    
+    booking_history = result.fetchall()
+    
+    return render_template('bookingView.html', queryd = booking_history)
+
+
+
+@app.route("/edit/<string:BookingID>", methods = ["Post", "Get"])
+@login_required
+def edit(BookingID):
+     post = BookingHistory.query.filter_by(BookingID=BookingID).first()
+     if request.method == "POST":
+        email = request.form.get('email')
+        start_date = request.form.get('start_date')
+        end_date = request.form.get('end_date')
+        hotel_address = request.form.get('BranchAddress')  # Ensure this matches your form field name
+        room_number = request.form.get('room_number')
+
+        # Prepare SQL query to update booking
+        update_query = text("""
+            UPDATE BookingHistory
+            SET StartDate = :start_date, EndDate = :end_date, HotelAddress = :hotel_address, RoomNumber = :room_number
+            WHERE BookingID = :BookingID;
+        """)
+
+        # Execute SQL query with provided parameters
+        db.session.execute(update_query, {
+            'start_date': start_date,
+            'end_date': end_date,
+            'hotel_address': hotel_address,
+            'room_number': room_number,
+            'BookingID': BookingID
+        })
+        db.session.commit()
+
+        print('Booking updated successfully!', 'success')
+        return redirect(url_for('bookingView'))
+     else:
+         return render_template('edit.html',posts = post)
+        
+
+@app.route("/bookings", methods=['POST', 'GET'])
+@login_required
 def bookings():
-    if not current_user.is_authenticated:
-        return redirect(url_for("login"))
-    else:
-        return render_template('bookings.html',username=current_user.Username)
+    if request.method == "POST":
+        email = request.form.get('email')
+        start_date = request.form.get('start_date')
+        end_date = request.form.get('end_date')
+        hotel_address = request.form.get('BranchAddress')
+        room_number = request.form.get('room_number')
+
+        # First, find the customer ID based on the email
+        sql_query = text("SELECT ID FROM Customer WHERE Email = :email")
+        result = db.session.execute(sql_query, {'email': email})
+        customer_record = result.fetchone()
+
+        if customer_record:
+            customer_id = customer_record[0]
+            # Now insert the booking into the BookingHistory table using raw SQL
+            insert_query = text("""
+                INSERT INTO bookinghistory (CustomerID, RoomNumber, HotelAddress, StartDate, EndDate, Status) 
+                VALUES (:customer_id, :room_number, :hotel_address, :start_date, :end_date, 'booked');
+            """)
+            db.session.execute(insert_query, {
+                'customer_id': customer_id,
+                'room_number': room_number,
+                'hotel_address': hotel_address,
+                'start_date': start_date,
+                'end_date': end_date
+            })
+            db.session.commit()
+            print('Booking successful!')
+        else:
+            print ('Customer not found!')
+
+    return render_template('bookings.html', current_userd = current_user)
+
 
 @app.route("/rooms")
 def rooms():
     return render_template("rooms.html")
 
-@app.route("/signup", methods = ['post', "get"])
+@app.route("/signup", methods=['POST', "GET"])
 def signup():
     if request.method == "POST":
         name = request.form.get('customerName')
         username = request.form.get('username')
         email = request.form.get('email')
         password = request.form.get('password')
-        # Assuming the customerID is not needed as mentioned before
-        # since ID is usually auto-generated. If it's not auto-generated,
-        # ensure your database schema is set up to handle it accordingly.
+        
+        # Check if the user already exists
+        existing_user_query = text("SELECT * FROM Users WHERE Username = :username OR Email = :email")
+        result = db.session.execute(existing_user_query, {'username': username, 'email': email}).first()
 
-        # Wrap the raw SQL query with the text() function
-        existing_customer = Users.query.filter((Users.Username == username) | (Users.Email == email)).first()
-        if existing_customer:
-            # If an existing customer is found, return an error message or redirect
+    
+        
+        if result:
             print('Signup failed: username or email already exists')
             return render_template("signup1.html")
-        raw_sql_query = text("""
-            INSERT INTO users (Username, Password, Email) 
+        
+        # Insert into Users table
+        insert_user_query = text("""
+            INSERT INTO Users (Username, Password, Email) 
             VALUES (:username, :password, :email);
         """)
-
-        try:
-            # Using db.session.execute to run the raw SQL query with named parameters
-            db.session.execute(raw_sql_query, {
-                'name': name,
-                'username': username,
-                'email': email,
-                'password': password
-            })
-            db.session.commit()  # Committing the transaction
-            print("Signup success")
-            return render_template("login1.html")
-        except Exception as e:
-            db.session.rollback()  # Rolling back in case of error
-            print(f"Error: {e}")
-            return 'Signup failed due to database error'
-
+        
+        db.session.execute(insert_user_query, {'username': username, 'password': password, 'email': email})
+        db.session.commit()
+        
+        # Fetch the newly created user ID again
+        new_user_id_result = db.session.execute(existing_user_query, {'username': username, 'email': email}).first()
+        new_user_id = new_user_id_result[0]  # Assuming UserID is the first column in the SELECT result
+        
+        # Insert into Customer table
+        insert_customer_query = text("""
+            INSERT INTO Customer (UserID, Fullname, Username, Password, Email) 
+            VALUES (:user_id, :name, :username, :password, :email);
+        """)
+        
+        db.session.execute(insert_customer_query, {'user_id': new_user_id, 'name': name, 'username': username, 'password': password, 'email': email})
+        db.session.commit()
+        
+        print("Signup success")
+        return render_template("login1.html")
+        
     return render_template("signup1.html")
-
 
 @app.route("/login", methods=['POST', 'GET'])
 def login():

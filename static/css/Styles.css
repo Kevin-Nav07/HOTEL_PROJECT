@@ -180,7 +180,23 @@ h1 {
 /* ------------------------banner section ------------------------- */
 .banner {
     height: 80%;
-    background-image: url(Images/space-bg.jpg);
+    background-image: url(../Images/homepagehotels.jpg);
+    background-position: center;
+    background-size: cover;
+    background-attachment: fixed;
+    padding-top: 14%;
+}
+
+.banner-highlights {
+    padding: 70px 0;
+    background: rgba(0, 0, 0, 0.7);
+    text-align: center;
+    color: white;
+}
+
+.table .banner {
+    height: 80%;
+    background-color: black;
     background-position: center;
     background-size: cover;
     background-attachment: fixed;
