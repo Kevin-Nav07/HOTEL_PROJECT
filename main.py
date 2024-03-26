@@ -1,3 +1,4 @@
+from functools import wraps
 from flask import Flask, flash, render_template, request, session, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import create_engine
@@ -125,6 +126,7 @@ class Users(UserMixin,db.Model):
     Username=db.Column(db.String(50))
     Password=db.Column(db.String(1000))
     Email=db.Column(db.String(50),unique=True)
+    Role = db.Column(db.String(10))
     def get_id(self):
         return self.Userid
 
@@ -157,8 +159,22 @@ def hello_world():
 def hotels():
     return render_template("hotels.html")
 
+def role_required(*roles):
+    def wrapper(fn):
+        @wraps(fn)
+        def decorated_view(*args, **kwargs):
+            if not current_user.is_authenticated:
+                return login_manager.unauthorized()
+            if current_user.Role not in roles:
+                flash('You do not have permission to access this page.')
+                return redirect(url_for('index'))
+            return fn(*args, **kwargs)
+        return decorated_view
+    return wrapper
+
 @app.route("/bookingView")
 @login_required
+@role_required("Customer")
 def bookingView():
     em = current_user.Email
     query = text("""
@@ -175,6 +191,7 @@ def bookingView():
 
 @app.route("/delete/<string:BookingID>", methods=["POST", "GET"])
 @login_required
+@role_required("Customer")
 def delete(BookingID):
     # Prepare the SQL delete query with parameter placeholders
     delete_query = text("DELETE FROM BookingHistory WHERE BookingID = :BookingID")
@@ -191,6 +208,7 @@ def delete(BookingID):
 
 @app.route("/SearchRooms", methods = ['Post', 'Get'])
 @login_required
+@role_required("Customer")
 def searchRooms():
     # Fetch form data
     print('in search')
@@ -250,6 +268,7 @@ def searchRooms():
 
 @app.route("/edit/<string:BookingID>", methods = ["Post", "Get"])
 @login_required
+@role_required("Customer")
 def edit(BookingID):
      post = BookingHistory.query.filter_by(BookingID=BookingID).first()
      if request.method == "POST":
@@ -284,6 +303,7 @@ def edit(BookingID):
 
 @app.route("/bookings", methods=['POST', 'GET'])
 @login_required
+@role_required("Customer")
 def bookings():
     if request.method == "POST":
         email = request.form.get('email')
@@ -315,15 +335,49 @@ def bookings():
             print('Booking successful!')
         else:
             print ('Customer not found!')
-    rooms = get_all_rooms()
-    print(rooms)
+   
 
     return render_template('bookings.html', current_userd = current_user)
 
 
-@app.route("/rooms")
-def rooms():
-    return render_template("rooms.html")
+
+@app.route("/EmployeeLogin", methods=['POST', 'GET'])
+def EmployeeLogin():
+    if request.method == "POST":
+        username = request.form.get('username')
+        password = request.form.get('password')
+        employee = Users.query.filter_by(Username=username).first()
+
+        if employee and employee.Password == password:  
+            login_user(employee)
+            print("Login Success", employee.Username)
+            return redirect(url_for('EmployeeView'))
+        else:
+            flash("Invalid credentials", "danger")
+    return render_template('EmployeeLogin.html')
+
+@app.route("/EmployeeView", methods = ["POST", "GET"])
+@login_required
+@role_required("Employee")
+def EmployeeView():
+    # Fetch the Employee's HotelAddress using raw SQL
+    employee_query = text("SELECT * FROM Employee WHERE UserID = :user_id")
+    employee = db.session.execute(employee_query, {'user_id': current_user.Userid}).first()
+
+    if not employee:
+        flash("Employee profile not found.", "danger")
+        return redirect(url_for("index"))
+
+    hotel_address = employee.HotelAddress
+
+    # Fetch the bookings for the hotel using raw SQL
+    bookings_query = text("""
+        SELECT * FROM BookingHistory 
+        WHERE HotelAddress = :hotel_address
+    """)
+    bookings = db.session.execute(bookings_query, {'hotel_address': hotel_address}).fetchall()
+
+    return render_template('EmployeeView.html', bookings_list=bookings)
 
 @app.route("/signup", methods=['POST', "GET"])
 def signup():
@@ -332,6 +386,7 @@ def signup():
         username = request.form.get('username')
         email = request.form.get('email')
         password = request.form.get('password')
+        role = "Customer"
         
         # Check if the user already exists
         existing_user_query = text("SELECT * FROM Users WHERE Username = :username OR Email = :email")
@@ -345,11 +400,11 @@ def signup():
         
         # Insert into Users table
         insert_user_query = text("""
-            INSERT INTO Users (Username, Password, Email) 
-            VALUES (:username, :password, :email);
+            INSERT INTO Users (Username, Password, Email, Role) 
+            VALUES (:username, :password, :email, :role);
         """)
         
-        db.session.execute(insert_user_query, {'username': username, 'password': password, 'email': email})
+        db.session.execute(insert_user_query, {'username': username, 'password': password, 'email': email, 'role': role})
         db.session.commit()
         
         # Fetch the newly created user ID again
@@ -370,6 +425,9 @@ def signup():
         
     return render_template("signup1.html")
 
+
+
+
 @app.route("/login", methods=['POST', 'GET'])
 def login():
     if request.method == "POST":
@@ -385,12 +443,16 @@ def login():
             flash("Invalid credentials", "danger")
     return render_template('login1.html')
 
+
+
+
 @app.route("/logout")
 @login_required
 def logout():
    logout_user()
    print("logged out")
    return redirect(url_for('login'))
+
 
 
 if __name__ == '__main__':
