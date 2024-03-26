@@ -44,41 +44,44 @@
             </div>
 
         </div>
-        <h1>BookingsView</h1>
+        <h1>Rooms View</h1>
         <p>Welcome</p>
     </section>
 
     <table class="table">
         <thead class="thead-light">
             <tr>
-                <th scope="col">Booking ID</th>
                 <th scope="col">Room Number</th>
                 <th scope="col">Hotel Address</th>
-                <th scope="col">Start Date</th>
-                <th scope="col">End Date</th>
-                <th scope="col">Status</th>
-
+                <th scope="col">Capacity</th>
+                <th scope="col">Price</th>
+                <th scope="col">View</th>
+                <th scope="col">Size</th>
             </tr>
         </thead>
         <tbody>
-            {% for post in queryd %}
+            {% for room in rooms_list %}
             <tr>
-                <th scope="row">{{post.BookingID}}</th>
-                <td>{{post.RoomNumber}}</td>
-                <td>{{post.HotelAddress}}</td>
-                <td>{{post.StartDate}}</td>
-                <td>{{post.EndDate}}</td>
-                <td>{{post.Status}}</td>
-                <td><a href="/edit/{{post.BookingID}}"><button class="btn btn-primary">Edit </button> </a> </td>
-                <td><a href="/delete/{{post.BookingID}}"><button
-                            onclick="return confirm('Are you sure to Delete data');" class="btn btn-danger">Delete
-                        </button> </a> </td>
+                <td>{{ room.RoomNumber }}</td>
+                <td>{{ room.HotelAddress }}</td>
+                <td>{{ room.Capacity }}</td>
+                <td>{{ room.Price }}</td>
+                <td>{{ room.View }}</td>
+                <td>{{ room.Size}}</td>
+                <td>
+                    <a href="/editRoom/{{ room.RoomNumber }}"><button class="btn btn-primary">Edit</button></a>
+                    <a href="/deleteRoom/{{ room.RoomNumber }}"
+                        onclick="return confirm('Are you sure to Delete this room?');"><button
+                            class="btn btn-danger">Delete</button></a>
+                </td>
             </tr>
             {% endfor %}
+        </tbody>
+    </table>
 
-            <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
-                integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
-                crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+        crossorigin="anonymous"></script>
 
 
 </body>

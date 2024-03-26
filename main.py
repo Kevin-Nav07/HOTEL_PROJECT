@@ -24,6 +24,28 @@ login_manager.login_view = 'login'
 def load_user(user_id):
     return Users.query.get(int(user_id))
 
+def get_all_rooms():
+    sql = text("SELECT * FROM Room")
+    result = db.session.execute(sql)
+    rows = result.fetchall()
+    # Assuming Room is a model, convert result rows to Room model instances if needed
+    # This part is skipped, but you might need to process rows depending on how you intend to use them
+    return rows
+
+def get_hotels_from_chain(chain_name):
+    sql = "SELECT * FROM Hotel WHERE ChainName = :chain_name"
+    result = db.session.execute(sql, {'chain_name': chain_name})
+    rows = result.fetchall()
+    return [{'Hotel Address': row.Address, 'Email': row.Email, 'NumberOfRooms': row.NumberOfRooms, 'Rating': row.Rating, 'ChainName': row.ChainName, 'Area': row.BranchName} for row in rows]
+
+def get_chains():
+    sql = "SELECT NAME FROM HotelChain"
+    result = db.session.execute(sql)
+    chains = result.fetchall()
+    chain_list = [chain.NAME for chain in chains]
+    return chain_list
+
+
 # Creating db models (tables)
 class HotelChain(db.Model):
     __tablename__ = 'hotelchain'
@@ -92,11 +114,11 @@ class Hotel(db.Model):
     NumberOfRooms = db.Column(db.Integer, nullable=False)
     Rating = db.Column(db.Integer, nullable=False)
     ChainName = db.Column(db.String(255), db.ForeignKey('hotelchain.NAME'), nullable=False)
-    BranchName = db.Column(db.String(255), nullable=False)  # Assuming you've added a BranchName column
+    Area= db.Column(db.String(255), nullable=False)  # Assuming you've added a BranchName column
 
 
     def __repr__(self):
-        return f'<Hotel {self.BranchName} in chain {self.ChainName}>'
+        return f'<Hotel {self.Address} in chain {self.ChainName}>'
 
 class Users(UserMixin,db.Model):
     Userid=db.Column(db.Integer,primary_key=True)
@@ -167,6 +189,64 @@ def delete(BookingID):
     # Redirect to another page, e.g., the booking view page
     return redirect(url_for('bookingView'))
 
+@app.route("/SearchRooms", methods = ['Post', 'Get'])
+@login_required
+def searchRooms():
+    # Fetch form data
+    print('in search')
+    if(request.method== "POST"):
+
+        room_capacity = request.form.get('roomCapacity')
+        area = request.form.get('area')
+        hotel_chain = request.form.get('hotelChain')
+        hotel_category = request.form.get('Rating')
+        total_rooms = request.form.get('totalRooms')
+        price_range = request.form.get('price')
+
+        # Start building the SQL query
+        query = """
+            SELECT r.*, h.ADDRESS
+            FROM Room r
+            JOIN Hotel h ON r.HotelAddress = h.ADDRESS
+            WHERE 1=1
+        """
+
+        # Add conditions based on the presence of filters
+        query_params = {}
+        if room_capacity:
+            query += " AND r.Capacity >= :room_capacity"
+            query_params['room_capacity'] = room_capacity
+        if area:
+            query += " AND h.AREA = :area"
+            query_params['area'] = area
+        if hotel_chain:
+            query += " AND h.ChainName = :hotel_chain"
+            query_params['hotel_chain'] = hotel_chain
+        if hotel_category:  # Assuming this refers to hotel rating
+            query += " AND h.Rating = :hotel_category"
+            query_params['hotel_category'] = hotel_category
+        if total_rooms:
+            query += " AND h.NumberOfRooms >= :total_rooms"
+            query_params['total_rooms'] = total_rooms
+        if price_range:
+            query += " AND r.Price <= :price_range"
+            query_params['price_range'] = price_range
+
+        # Execute the query
+        query = text(query)
+        result = db.session.execute(query, query_params)
+        rooms = result.fetchall()
+        print(rooms)
+        return(render_template("RoomsView.html", rooms_list=rooms))
+        
+    # Fetch hotel chains from the database
+    query = text("SELECT DISTINCT ChainName FROM Hotel ORDER BY ChainName")
+    result = db.session.execute(query)
+    hotel_chains = result.fetchall()
+
+    # Render the results on a new template or the same with the search form
+    return render_template('SearchRooms.html', hotel_chain_list=hotel_chains)
+
 
 @app.route("/edit/<string:BookingID>", methods = ["Post", "Get"])
 @login_required
@@ -235,6 +315,8 @@ def bookings():
             print('Booking successful!')
         else:
             print ('Customer not found!')
+    rooms = get_all_rooms()
+    print(rooms)
 
     return render_template('bookings.html', current_userd = current_user)
 

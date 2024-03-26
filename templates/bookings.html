@@ -29,6 +29,7 @@
                         <li class="nav-item"><a href="/hotels"> Hotels</a></li>
                         <li class="nav-item"><a href="/bookings"> Bookings</a></li>
                         <li class="nav-item"><a href="/bookingView"> Booking View</a></li>
+                        <li class="nav-item"><a href="/SearchRooms"> Search</a></li>
                         <li class="nav-item"><a href="/rooms"> Rooms </a></li>
                         <li class="nav-item"><a href="/login"> login</a></li>
                         <li class="nav-item"><a href="/signup"> Signup</a></li>
@@ -42,6 +43,17 @@
         </div>
         <h1>Bookings</h1>
         <p>Welcome {{current_userd.Username}}</p>
+
+        <form action="">
+
+            <div class="input-group">
+                <input type="text" class="form-control" placeholder="Search" name="search">
+                <div class="input-group-append">
+                    <button type="button" class="input-group-text btn">Search</button>
+
+                </div>
+            </div>
+        </form>
 
         <section class="features">
             <h1> Objects of Interest</h1>

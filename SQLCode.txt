@@ -14,9 +14,10 @@ CREATE TABLE Hotel (
     NumberOfRooms INT,
     Rating INT CHECK (Rating BETWEEN 1 AND 5),
     ChainName VARCHAR(255),
-    BranchName VARCHAR(255), -- New column added
+    Area VARCHAR(255), -- New column added
     FOREIGN KEY (ChainName) REFERENCES HotelChain(NAME)
 );
+
 
 -- Room table with composite primary key remains unchanged
 CREATE TABLE Room (
@@ -26,6 +27,7 @@ CREATE TABLE Room (
     Price DECIMAL(10,2),
     View ENUM('sea', 'mountain', 'none'),
     Size ENUM('single', 'double', 'suite'),
+    RoomCapacity INT,
     PRIMARY KEY (RoomNumber, HotelAddress),
     FOREIGN KEY (HotelAddress) REFERENCES Hotel(ADDRESS)
 );
