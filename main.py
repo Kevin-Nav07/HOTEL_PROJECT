@@ -151,6 +151,21 @@ def bookingView():
     
     return render_template('bookingView.html', queryd = booking_history)
 
+@app.route("/delete/<string:BookingID>", methods=["POST", "GET"])
+@login_required
+def delete(BookingID):
+    # Prepare the SQL delete query with parameter placeholders
+    delete_query = text("DELETE FROM BookingHistory WHERE BookingID = :BookingID")
+
+    # Execute the delete query with the actual BookingID parameter
+    db.session.execute(delete_query, {'BookingID': BookingID})
+    db.session.commit()
+
+    # Optionally, flash a message to indicate successful deletion
+    flash('Booking deleted successfully!', 'success')
+
+    # Redirect to another page, e.g., the booking view page
+    return redirect(url_for('bookingView'))
 
 
 @app.route("/edit/<string:BookingID>", methods = ["Post", "Get"])
