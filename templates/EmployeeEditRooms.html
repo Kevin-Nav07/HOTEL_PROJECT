@@ -85,6 +85,7 @@
                 <th scope="col">Price</th>
                 <th scope="col">View</th>
                 <th scope="col">Size</th>
+                <th scope="col">Status</th>
             </tr>
         </thead>
         <tbody>
@@ -96,6 +97,7 @@
                 <td>{{ room.Price }}</td>
                 <td>{{ room.View }}</td>
                 <td>{{ room.Size}}</td>
+                <td>{{ room.Status}}</td>
                 <td>
                     <a href="/editRoom/{{ room.RoomNumber }}"><button class="btn btn-primary">Edit</button></a>
                     <a href="/deleteRoom/{{ room.RoomNumber }}"

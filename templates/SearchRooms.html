@@ -43,6 +43,35 @@
 
         </div>
 
+        <div class="container">
+            {% with messages=get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert" style="width: 50%; margin: 0 auto; margin-top: 20px; border: 0 !important;
+                border-radius: 30px !important;">
+                {{ message }}
+                <button type="button" class="custom-close" aria-label="Close"
+                    style="border: none; background: transparent;">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+        </div>
+
+        <script>
+            document.addEventListener("DOMContentLoaded", function () {
+                var closeButtons = document.querySelectorAll(".custom-close");
+                closeButtons.forEach(function (btn) {
+                    btn.onclick = function () {
+                        var alert = this.parentElement;
+                        alert.style.display = "none";
+                    };
+                });
+            });
+        </script>
+
 
         <section class="search-banner">
             <div class="container mt-5">

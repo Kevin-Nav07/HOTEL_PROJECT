@@ -45,6 +45,34 @@
             </div>
 
         </div>
+        <div class="container">
+            {% with messages=get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert" style="width: 50%; margin: 0 auto; margin-top: 20px; border: 0 !important;
+                border-radius: 30px !important;">
+                {{ message }}
+                <button type="button" class="custom-close" aria-label="Close"
+                    style="border: none; background: transparent;">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+        </div>
+
+        <script>
+            document.addEventListener("DOMContentLoaded", function () {
+                var closeButtons = document.querySelectorAll(".custom-close");
+                closeButtons.forEach(function (btn) {
+                    btn.onclick = function () {
+                        var alert = this.parentElement;
+                        alert.style.display = "none";
+                    };
+                });
+            });
+        </script>
         <h1>Login</h1>
         <p>Enter your details</p>
 
@@ -89,10 +117,10 @@
     </section>
 
 
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
-        integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+        integrity="sha384-ppPg0rLMV3IKbX3DM6rM4Y5tLw/Sjn1wR6C7DvQxnWzD1tM7MCHc/a+T6c5BkQWm"
         crossorigin="anonymous"></script>
+</body>
 
 </body>
 
