@@ -425,6 +425,75 @@ def EmployeeInformation():
         flash("Employee record not found.", "danger")
         return redirect(url_for('index'))
 
+@app.route("/deleteRoom/<string:Roomnum>", methods=["POST", "GET"])
+@login_required
+@role_required("Employee")
+def deleteRoom(Roomnum):
+    # Prepare the SQL delete query with parameter placeholders
+    delete_query = text("DELETE FROM Room WHERE RoomNumber= :Roomnum")
+
+    # Execute the delete query with the actual BookingID parameter
+    db.session.execute(delete_query, {'Roomnum': Roomnum})
+    db.session.commit()
+
+    # Optionally, flash a message to indicate successful deletion
+    flash('Room deleted successfully!', 'success')
+
+    # Redirect to another page, e.g., the booking view page
+    return redirect(url_for('EmployeeEditRooms'))
+@app.route("/EmployeeEditingRooms/<string:room_number>", methods=["GET", "POST"])
+@login_required
+@role_required("Employee")
+def EmployeeEditingRooms(room_number):
+    if request.method == "POST":
+        # Extract room details from form submission
+        extendability = request.form.get("Extendability")
+        price = request.form.get("price")
+        view = request.form.get("view")
+        capacity = request.form.get("capacity")
+        amenities = request.form.get("amenities")
+        problems = request.form.get("problems")
+
+        try:
+            # Update room details using raw SQL
+            update_query = text("""
+                UPDATE Room
+                SET Extendability = :extendability, Price = :price, View = :view, 
+                    RoomCapacity = :capacity, Amenities = :amenities, problems = :problems
+                WHERE RoomNumber = :room_number
+            """)
+            db.session.execute(update_query, {
+                "extendability": extendability,
+                "price": price,
+                "view": view,
+                "capacity": capacity,
+                "amenities": amenities,
+                "problems": problems,
+                "room_number": room_number
+            })
+            db.session.commit()
+            flash("Room updated successfully.", "success")
+        except Exception as e:
+            db.session.rollback()
+            flash("Failed to update room details.", "danger")
+            print(e)
+
+        return redirect(url_for('EmployeeEditRooms'))
+
+    else:
+        # Fetch current room details to pre-populate the form for editing
+        try:
+            room_query = text("SELECT * FROM Room WHERE RoomNumber = :room_number")
+            roomd = db.session.execute(room_query, {"room_number": room_number}).first()
+            if roomd:
+                return render_template("EmployeeEditingRooms.html", room=roomd)
+            else:
+                flash("Room not found.", "danger")
+                return redirect(url_for('EmployeeEditRooms'))
+        except Exception as e:
+            flash("Failed to fetch room details.", "danger")
+            print(e)
+            return redirect(url_for('EmployeeEditRooms'))
 
 
 
