@@ -60,20 +60,24 @@ class HotelChain(db.Model):
 class Customer(UserMixin,db.Model):
     __tablename__ = 'customer'
     ID = db.Column(db.Integer, primary_key=True)
-    Fullname = db.Column(db.String(255))
+    UserID = db.Column(db.Integer, db.ForeignKey('user.Userid'))
+    Username = db.Column(db.String(255), unique=True)
+    Address = db.Column(db.String(255))
     Username = db.Column(db.String(255), unique=True)
     Password = db.Column(db.String(255))
     Email = db.Column(db.String(255), unique=True)
+    SIN = db.Column(db.String(255), unique =True)
     def get_id(self):
         return self.ID
     
 class Employee(db.Model):
     __tablename__ = 'employee'
     ID = db.Column(db.Integer, primary_key=True)
-    UserID = db.Column(db.Integer, db.ForeignKey('user.UserID'))
+    UserID = db.Column(db.Integer, db.ForeignKey('user.Userid'))
     Address = db.Column(db.String(255))
     Fullname = db.Column(db.String(255))
     HotelAddress = db.Column(db.String(255), db.ForeignKey('hotel.ADDRESS'))
+    Role = db.Column(db.String(255))
     # Relationship to User table if needed
 
 class Room(db.Model):
@@ -84,6 +88,9 @@ class Room(db.Model):
     Price = db.Column(db.Numeric(10, 2))
     View = db.Column(db.String(255))
     Size = db.Column(db.String(255))
+    RoommCapacity = db.Column(db.Integer())
+    Amenities = db.Column(db.String(255))
+    problems = db.Column(db.String(255))
     # Relationships if needed
 
 class BookingHistory(db.Model):
@@ -101,33 +108,22 @@ class BookingHistory(db.Model):
 class Renting(db.Model):
     __tablename__ = 'renting'
     RentingID = db.Column(db.Integer, primary_key=True)
-    BookingID = db.Column(db.Integer, db.ForeignKey('bookinghistory.BookingID'), unique=True)
     CustomerID = db.Column(db.Integer, db.ForeignKey('customer.ID'))
     RoomNumber = db.Column(db.String(255), db.ForeignKey('room.RoomNumber'))
+    HotelAddress = db.Column(db.String(255), db.ForeignKey('Hotel.ADDRESS'))
     StartDate = db.Column(db.Date, nullable=False)
     EndDate = db.Column(db.Date, nullable=False)
     Status = db.Column(db.String(255), nullable=False)  # e.g., "Checked-in", "Completed"
 
-class Amenities(db.Model):
-    __tablename__ = 'amenities'
-    RoomNumber = db.Column(db.String(255), db.ForeignKey('room.RoomNumber'), primary_key=True)
-    HotelAddress = db.Column(db.String(255), db.ForeignKey('room.HotelAddress'), primary_key=True)
-    TV = db.Column(db.Boolean)
-    Fridge = db.Column(db.Boolean)
-    AirCondition = db.Column(db.Boolean)
-    # Relationship to Room table if needed
-
     
 class Hotel(db.Model):
     __tablename__ = 'hotel'
-    Address = db.Column(db.String(255), primary_key=True)
+    ADDRESS = db.Column(db.String(255), primary_key=True)
     Email = db.Column(db.String(255), nullable=False)
     NumberOfRooms = db.Column(db.Integer, nullable=False)
     Rating = db.Column(db.Integer, nullable=False)
     ChainName = db.Column(db.String(255), db.ForeignKey('hotelchain.NAME'), nullable=False)
     Area= db.Column(db.String(255), nullable=False)  # Assuming you've added a BranchName column
-
-
     def __repr__(self):
         return f'<Hotel {self.Address} in chain {self.ChainName}>'
 
@@ -186,14 +182,14 @@ def role_required(*roles):
 @login_required
 @role_required("Customer")
 def bookingView():
-    em = current_user.Email
+    user_id = current_user.Userid
     query = text("""
         SELECT bh.*
         FROM BookingHistory bh
         JOIN Customer c ON bh.CustomerID = c.ID
-        WHERE c.Email = :email;
+        WHERE c.UserID = :userid;
     """)
-    result = db.session.execute(query, {'email': em})
+    result = db.session.execute(query, {'userid': user_id})
     
     booking_history = result.fetchall()
     
@@ -245,7 +241,7 @@ def searchRooms():
             query += " AND r.Capacity >= :room_capacity"
             query_params['room_capacity'] = room_capacity
         if area:
-            query += " AND h.AREA = :area"
+            query += " AND h.Area = :area"
             query_params['area'] = area
         if hotel_chain:
             query += " AND h.ChainName = :hotel_chain"
@@ -262,9 +258,14 @@ def searchRooms():
 
         # Execute the query
         query = text(query)
-        result = db.session.execute(query, query_params)
-        rooms = result.fetchall()
-        print(rooms)
+        try:
+
+            result = db.session.execute(query, query_params)
+            rooms = result.fetchall()
+            print(rooms)
+        except Exception as e:
+            print("Error trying to get rooms", e)
+            db.session.rollback()
         return(render_template("RoomsView.html", rooms_list=rooms))
         
     # Fetch hotel chains from the database
@@ -282,32 +283,40 @@ def searchRooms():
 def edit(BookingID):
      post = BookingHistory.query.filter_by(BookingID=BookingID).first()
      if request.method == "POST":
-        email = request.form.get('email')
         start_date = request.form.get('start_date')
         end_date = request.form.get('end_date')
         hotel_address = request.form.get('BranchAddress')  # Ensure this matches your form field name
         room_number = request.form.get('room_number')
 
         # Prepare SQL query to update booking
-        update_query = text("""
-            UPDATE BookingHistory
-            SET StartDate = :start_date, EndDate = :end_date, HotelAddress = :hotel_address, RoomNumber = :room_number
-            WHERE BookingID = :BookingID;
-        """)
 
-        # Execute SQL query with provided parameters
-        db.session.execute(update_query, {
-            'start_date': start_date,
-            'end_date': end_date,
-            'hotel_address': hotel_address,
-            'room_number': room_number,
-            'BookingID': BookingID
-        })
-        db.session.commit()
+        try:
 
-        flash('Booking updated successfully!', 'success')
-        return redirect(url_for('bookingView'))
+            update_query = text("""
+                UPDATE BookingHistory
+                SET StartDate = :start_date, EndDate = :end_date, HotelAddress = :hotel_address, RoomNumber = :room_number
+                WHERE BookingID = :BookingID;
+            """)
+
+            # Execute SQL query with provided parameters
+            db.session.execute(update_query, {
+                'start_date': start_date,
+                'end_date': end_date,
+                'hotel_address': hotel_address,
+                'room_number': room_number,
+                'BookingID': BookingID
+            })
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            flash("Booking information update failed, invalid hotel information")
+            print("error while updating booking: ", e)
+            return render_template("edit.html", posts = post)
+        flash("Booking Updated", "Success")
+        return (redirect(url_for("bookingView")))
+        
      else:
+         print(post.HotelAddress)
          return render_template('edit.html',posts = post)
         
 
@@ -326,28 +335,96 @@ def bookings():
         sql_query = text("SELECT ID FROM Customer WHERE Email = :email")
         result = db.session.execute(sql_query, {'email': email})
         customer_record = result.fetchone()
+        try:
 
-        if customer_record:
-            customer_id = customer_record[0]
-            # Now insert the booking into the BookingHistory table using raw SQL
-            insert_query = text("""
-                INSERT INTO bookinghistory (CustomerID, RoomNumber, HotelAddress, StartDate, EndDate, Status) 
-                VALUES (:customer_id, :room_number, :hotel_address, :start_date, :end_date, 'booked');
-            """)
-            db.session.execute(insert_query, {
-                'customer_id': customer_id,
-                'room_number': room_number,
-                'hotel_address': hotel_address,
-                'start_date': start_date,
-                'end_date': end_date
-            })
-            db.session.commit()
-            flash('Booking successful!', "success")
-        else:
-            flash('Customer not found!', "danger")
+            if customer_record:
+                customer_id = customer_record[0]
+                # Now insert the booking into the BookingHistory table using raw SQL
+                insert_query = text("""
+                    INSERT INTO bookinghistory (CustomerID, RoomNumber, HotelAddress, StartDate, EndDate, Status) 
+                    VALUES (:customer_id, :room_number, :hotel_address, :start_date, :end_date, 'booked');
+                """)
+                db.session.execute(insert_query, {
+                    'customer_id': customer_id,
+                    'room_number': room_number,
+                    'hotel_address': hotel_address,
+                    'start_date': start_date,
+                    'end_date': end_date
+                })
+                db.session.commit()
+                flash('Booking successful!', "success")
+            else:
+                flash('Customer not found!', "danger")
+        except Exception as e:
+            db.session.rollback()
+            print("Error creating booking ", e)
+            flash("Error creating booking, possibly invalid hotel information", "danger")
+
    
 
     return render_template('bookings.html', current_userd = current_user)
+
+
+@app.route("/EmployeeInformation", methods = ["Post", "Get"])
+@login_required
+@role_required("Employee")
+def EmployeeInformation():
+     # Assuming current_user stores the logged-in user's info, including Userid
+    if request.method == "POST":
+        # Get the form data
+        fullname = request.form.get("fullname")
+        address = request.form.get("address")
+        hotelAddress = request.form.get("hotelAddress")
+        position = request.form.get("position")
+        print(position)
+        
+        try:
+            # Update the employee information
+            update_query = text("""
+                UPDATE Employee 
+                SET Fullname = :fullname, Address = :address, HotelAddress = :hotelAddress, Role = :role
+                WHERE UserID = :user_id
+            """)
+            db.session.execute(update_query, {
+                "fullname": fullname,
+                "address": address,
+                "hotelAddress": hotelAddress,
+                "user_id": current_user.Userid,
+                "role": position})
+            db.session.commit()
+            flash("Employee information updated successfully.", "success")
+        except Exception as e:
+            db.session.rollback()
+            flash("An error occurred while updating employee information.", "danger")
+            print(e)
+        
+        # Redirect to prevent form resubmission
+        return redirect(url_for('EmployeeView'))
+
+    user_id = current_user.Userid
+    
+    
+    # Query the Employee table to get the employee details for the logged-in user
+    try:
+            
+        employee_query = text("SELECT * FROM Employee WHERE UserID = :user_id")
+        employee_result = db.session.execute(employee_query, {'user_id': user_id})
+        
+        # Fetchone since there should only be one record per user
+        employeed = employee_result.fetchone()
+    except Exception as e:
+        print("Error trying to access employee: ", e)
+        db.session.rollback()
+    
+    if employeed:
+        # Pass the employee to the template
+        print(employeed)
+        return render_template("EmployeeInformation.html", employee=employeed, current_userd=current_user)
+    else:
+        # Handle cases where the employee record does not exist
+        flash("Employee record not found.", "danger")
+        return redirect(url_for('index'))
+
 
 
 
@@ -388,15 +465,43 @@ def EmployeeView():
 
     return render_template('EmployeeView.html', bookings_list=bookings)
 
+@app.route("/EmployeeEditRooms", methods = ["Post", "Get"])
+@login_required
+@role_required("Employee")
+def EmployeeEditRooms():
+    # Assuming 'current_user' is the logged-in employee
+    employee_id = current_user.Userid
+    # SQL to get the hotel address for the current employee
+    try:
+
+        hotel_address_query = text("SELECT HotelAddress FROM Employee WHERE UserID = :employee_id")
+        hotel_address_result = db.session.execute(hotel_address_query, {'employee_id': employee_id})
+        hotel_address = hotel_address_result.fetchone()
+    except Exception as e:
+         
+         db.session.rollback()
+         print(f'An error occurred: {str(e)}', 'danger')
+
+
+    if hotel_address:
+        # SQL to get rooms belonging to the employee's hotel
+        try:
+            rooms_query = text("SELECT * FROM Room WHERE HotelAddress = :hotel_address")
+            rooms = db.session.execute(rooms_query, {'hotel_address': hotel_address[0]}).fetchall()
+            return render_template("EmployeeEditRooms.html", rooms_list=rooms)
+        except Exception as e:
+              db.session.rollback()
+              print(f'An error occurred: {str(e)}', 'danger')
+    else:
+        flash("Employee's hotel not found.", "danger")
+        return redirect(url_for('index'))
+
 
 @app.route("/EmployeeCheckin/<string:booking_id>", methods = ["Post", "Get"])
 @login_required
 @role_required("Employee")
 def EmployeeCheckin(booking_id):
-     # Ensure the user is an employee
-
-
-    # Find the booking
+     # Find the booking
     try:
         booking_query = text("""
             SELECT * FROM BookingHistory WHERE BookingID = :booking_id
@@ -405,53 +510,38 @@ def EmployeeCheckin(booking_id):
 
         if booking is None:
             flash('Booking not found.', 'danger')
-            return redirect(url_for('EmployeeVIew'))
-
-        # Check if there's already a renting for this booking
-        renting_query = text("""
-            SELECT * FROM Renting WHERE BookingID = :booking_id
-        """)
-        renting_exists = db.session.execute(renting_query, {'booking_id': booking_id}).first()
-
-        if renting_exists:
-            flash('A renting record already exists for this booking.', 'warning')
             return redirect(url_for('EmployeeView'))
 
-        # Create a new renting record
+    
+
+        # Create a new renting record without BookingID
         insert_renting = text("""
-            INSERT INTO Renting (BookingID, StartDate, EndDate, RoomNumber, CustomerID, Status)
-            VALUES (:BookingID, :StartDate, :EndDate, :RoomNumber, :CustomerID, 'Checked-in')
+            INSERT INTO Renting (StartDate, EndDate, RoomNumber, HotelAddress, CustomerID, Status)
+            VALUES (:StartDate, :EndDate, :RoomNumber,:HotelAddress, :CustomerID, 'Checked-in')
         """)
 
         db.session.execute(insert_renting, {
-            'BookingID': booking.BookingID,
             'StartDate': booking.StartDate,
             'EndDate': booking.EndDate,
             'RoomNumber': booking.RoomNumber,
+            'HotelAddress':booking.HotelAddress,
             'CustomerID': booking.CustomerID
         })
         db.session.commit()
 
+        # Update the BookingHistory status
         try:
-            # Assuming you've created a Renting object and inserted it already,
-            # and now you want to update the BookingHistory status using raw SQL
-
-            # SQL statement to update BookingHistory status
             update_sql = text("UPDATE BookingHistory SET Status = :status WHERE BookingID = :booking_id")
-
-            # Execute the update statement
             db.session.execute(update_sql, {'status': 'Completed', 'booking_id': booking_id})
-            
             db.session.commit()
             flash('Check-in successful. Booking status updated to Completed.', 'success')
         except Exception as e:
             db.session.rollback()
-            
+            flash(f'An error occurred while updating booking status: {str(e)}', 'danger')
 
-        flash('Check-in successful. Renting record created.', 'success')
     except Exception as e:
-        db.session.rolllback()
-        print(f'An error occurred: {str(e)}', 'danger')
+        db.session.rollback()
+        flash(f'An error occurred: {str(e)}', 'danger')
 
     return redirect(url_for('EmployeeView'))
 
@@ -465,6 +555,8 @@ def signup():
         username = request.form.get('username')
         email = request.form.get('email')
         password = request.form.get('password')
+        sin = request.form.get("SIN")
+        Cust_Address = request.form.get("Cust_Address")
         role = "Customer"
         
         # Check if the user already exists
@@ -492,11 +584,11 @@ def signup():
         
         # Insert into Customer table
         insert_customer_query = text("""
-            INSERT INTO Customer (UserID, Fullname, Username, Password, Email) 
-            VALUES (:user_id, :name, :username, :password, :email);
+            INSERT INTO Customer (UserID, Fullname,Address, Email, SIN) 
+            VALUES (:user_id, :name, :Cust_Address , :email, :sin);
         """)
         
-        db.session.execute(insert_customer_query, {'user_id': new_user_id, 'name': name, 'username': username, 'password': password, 'email': email})
+        db.session.execute(insert_customer_query, {'user_id': new_user_id, 'name': name, 'Cust_Address': Cust_Address, 'email': email, "sin" : sin})
         db.session.commit()
         
         flash("Signup success", "success")

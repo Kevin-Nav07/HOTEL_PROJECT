@@ -96,12 +96,6 @@
                 <td>{{ room.Price }}</td>
                 <td>{{ room.View }}</td>
                 <td>{{ room.Size}}</td>
-                <td>
-                    <a href="/editRoom/{{ room.RoomNumber }}"><button class="btn btn-primary">Edit</button></a>
-                    <a href="/deleteRoom/{{ room.RoomNumber }}"
-                        onclick="return confirm('Are you sure to Delete this room?');"><button
-                            class="btn btn-danger">Delete</button></a>
-                </td>
             </tr>
             {% endfor %}
         </tbody>

@@ -1,0 +1,5 @@
+List of things to add to the site: 
+
+Employee Edit profile 
+Customer edit profile
+Employee deleting and editing rooms for the hotel they work in
