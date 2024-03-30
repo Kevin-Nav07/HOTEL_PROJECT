@@ -82,9 +82,11 @@
                 <th scope="col">Room Number</th>
                 <th scope="col">Hotel Address</th>
                 <th scope="col">Capacity</th>
+                <th scope="col">Extendability</th>
                 <th scope="col">Price</th>
                 <th scope="col">View</th>
-                <th scope="col">Size</th>
+                <th scope="col">Room Problems</th>
+                <th scope="col">Amenities</th>
             </tr>
         </thead>
         <tbody>
@@ -93,9 +95,11 @@
                 <td>{{ room.RoomNumber }}</td>
                 <td>{{ room.HotelAddress }}</td>
                 <td>{{ room.Capacity }}</td>
+                <td>{{ room.Extendability }}</td>
                 <td>{{ room.Price }}</td>
                 <td>{{ room.View }}</td>
-                <td>{{ room.Size}}</td>
+                <td>{{ room.Problems}}</td>
+                <td>{{ room.Amenities}}</td>
             </tr>
             {% endfor %}
         </tbody>

@@ -187,13 +187,17 @@ h1 {
     padding-top: 14%;
 }
 
-.banner-employeeinfo {
-    height: 80%;
+
+body .banner-employeeinfo {
+    margin: 0;
+    padding: 0;
     background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url(../Images/homepagehotels.jpg);
-    background-position: center;
+    background-position: center center;
     background-size: cover;
+    background-repeat: no-repeat;
     background-attachment: fixed;
-    padding-top: 14%;
+    min-height: 100vh;
+    /* Ensure it covers at least the full viewport height */
 }
 
 body .search-banner {

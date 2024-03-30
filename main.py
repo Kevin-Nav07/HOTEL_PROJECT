@@ -12,7 +12,7 @@ from flask_mail import Mail
 
 db = SQLAlchemy()
 app = Flask(__name__)
-app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://root:@localhost/hotel_db"
+app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://root:@localhost/newest_hotel_testing"
 db.init_app(app)
 
 app.secret_key = 'kevin_science'
@@ -91,6 +91,7 @@ class Room(db.Model):
     RoommCapacity = db.Column(db.Integer())
     Amenities = db.Column(db.String(255))
     problems = db.Column(db.String(255))
+    
     # Relationships if needed
 
 class BookingHistory(db.Model):
@@ -195,9 +196,47 @@ def bookingView():
     
     return render_template('bookingView.html', queryd = booking_history)
 
+@app.route("/DeleteEmployeeAccount", methods=["POST"])
+@login_required
+def delete_employee_account():
+    user_id = current_user.Userid
+
+    try:
+        # First, retrieve the Employee ID based on UserID
+        employee_query = text("SELECT ID FROM Employee WHERE UserID = :user_id")
+        employee_result = db.session.execute(employee_query, {'user_id': user_id}).fetchone()
+        if not employee_result:
+            flash("No employee found for the current user.", "danger")
+            return redirect(url_for('index'))
+
+        employee_id = employee_result[0]
+
+        # Then, delete the Employee record. ResponsibleFor cleanup is handled by the trigger.
+        delete_employee_query = text("DELETE FROM Employee WHERE UserID = :user_id")
+        db.session.execute(delete_employee_query, {'user_id': user_id})
+
+        # Now, delete the User record, which also effectively logs out the user if they are logged in.
+        delete_user_query = text("DELETE FROM Users WHERE Userid = :user_id")
+        db.session.execute(delete_user_query, {'user_id': user_id})
+
+        # Commit the changes
+        db.session.commit()
+
+        # Log out the current user
+        logout_user()
+        flash("Your employee account and all related records have been successfully deleted.", "success")
+    except Exception as e:
+        # Rollback in case of any errors
+        db.session.rollback()
+        flash(f"An error occurred while deleting your employee account. Please try again.", "danger")
+        print(e)
+
+    # Redirect to the home page after account deletion
+    return redirect(url_for('index'))
+
+
 @app.route("/delete/<string:BookingID>", methods=["POST", "GET"])
 @login_required
-@role_required("Customer")
 def delete(BookingID):
     # Prepare the SQL delete query with parameter placeholders
     delete_query = text("DELETE FROM BookingHistory WHERE BookingID = :BookingID")
@@ -211,6 +250,58 @@ def delete(BookingID):
 
     # Redirect to another page, e.g., the booking view page
     return redirect(url_for('bookingView'))
+
+
+@app.route("/CustomerInformation", methods=["GET", "POST"])
+@login_required
+def CustomerInformation():
+    user_id = current_user.Userid
+
+    if request.method == "POST":
+        # Extract the information from the form
+        fullname = request.form.get("fullname")
+        sin = request.form.get("sin")
+        address = request.form.get("address")
+        email = request.form.get("email")
+
+        try:
+            # Update the customer information in the database
+            update_query = text("""
+                UPDATE Customer
+                SET Fullname = :fullname, SIN = :sin, Address = :address, Email = :email
+                WHERE UserID = :user_id
+            """)
+            db.session.execute(update_query, {
+                "fullname": fullname,
+                "sin": sin,
+                "address": address,
+                "user_id": user_id,
+                "email": email
+            })
+            db.session.commit()
+            flash("Customer information updated successfully.", "success")
+        except Exception as e:
+            db.session.rollback()
+            flash("An error occurred while updating customer information.", "danger")
+            print(e)
+        
+        return render_template("index1.html")
+    else:
+        try:
+            # Fetch the current customer's information to populate the form
+            customer_query = text("SELECT * FROM Customer WHERE UserID = :user_id")
+            customer = db.session.execute(customer_query, {"user_id": user_id}).first()
+            if customer:
+                print(customer)
+                return (render_template("CustomerInformation.html", customer=customer))
+            else:
+                flash("Customer not found.", "danger")
+                return redirect(url_for('index'))
+        except Exception as e:
+            flash("Failed to fetch customer details.", "danger")
+            print(e)
+            return redirect(url_for('index'))
+        
 
 @app.route("/SearchRooms", methods = ['Post', 'Get'])
 @login_required
@@ -226,6 +317,7 @@ def searchRooms():
         hotel_category = request.form.get('Rating')
         total_rooms = request.form.get('totalRooms')
         price_range = request.form.get('price')
+        booked = 0
 
         # Start building the SQL query
         query = """
@@ -238,7 +330,7 @@ def searchRooms():
         # Add conditions based on the presence of filters
         query_params = {}
         if room_capacity:
-            query += " AND r.Capacity >= :room_capacity"
+            query += " AND r.RoomCapacity >= :room_capacity"
             query_params['room_capacity'] = room_capacity
         if area:
             query += " AND h.Area = :area"
@@ -255,6 +347,8 @@ def searchRooms():
         if price_range:
             query += " AND r.Price <= :price_range"
             query_params['price_range'] = price_range
+        query+= " AND r.Booked = :booked"
+        query_params['booked'] = booked
 
         # Execute the query
         query = text(query)
@@ -262,7 +356,7 @@ def searchRooms():
 
             result = db.session.execute(query, query_params)
             rooms = result.fetchall()
-            print(rooms)
+            
         except Exception as e:
             print("Error trying to get rooms", e)
             db.session.rollback()
@@ -565,12 +659,73 @@ def EmployeeEditRooms():
         flash("Employee's hotel not found.", "danger")
         return redirect(url_for('index'))
 
+@app.route("/view-rooms-info")
+@login_required
+def view_rooms_info():
+    # Query the AvailableRoomsPerArea view
+    available_rooms_query = text("SELECT * FROM AvailableRoomsPerArea")
+    available_rooms = db.session.execute(available_rooms_query).fetchall()
+    
+    # Query the TotalCapacityPerHotel view
+    total_capacity_query = text("SELECT * FROM HotelRoomCapacities")
+    total_capacity = db.session.execute(total_capacity_query).fetchall()
+    
+    return render_template("rooms_info.html", available_rooms=available_rooms, total_capacity=total_capacity)
+
+@app.route("/DeleteCustomerAccount", methods=["POST"])
+@login_required
+def delete_customer_account():
+    user_id = current_user.Userid
+
+    try:
+        # First, retrieve the Customer ID based on UserID
+        customer_query = text("SELECT ID FROM Customer WHERE UserID = :user_id")
+        customer_result = db.session.execute(customer_query, {'user_id': user_id}).fetchone()
+        if not customer_result:
+            flash("No customer found for the current user.", "danger")
+            return redirect(url_for('index'))
+
+        customer_id = customer_result[0]
+
+        # Then, delete the Customer record
+        delete_customer_query = text("DELETE FROM Customer WHERE UserID = :user_id")
+        db.session.execute(delete_customer_query, {'user_id': user_id})
+
+        # Now, delete the User record
+        delete_user_query = text("DELETE FROM Users WHERE Userid = :user_id")
+        db.session.execute(delete_user_query, {'user_id': user_id})
+
+        # Commit the changes
+        db.session.commit()
+
+        # Log out the current user
+        logout_user()
+        flash("Your account and all related records have been successfully deleted.", "success")
+    except Exception as e:
+        # Rollback in case of any errors
+        db.session.rollback()
+        flash(f"An error occurred while deleting your account. Please try again.", "danger")
+        print(e)
+
+    # Redirect to the home page after account deletion
+    return redirect(url_for('index'))
+
 
 @app.route("/EmployeeCheckin/<string:booking_id>", methods = ["Post", "Get"])
 @login_required
 @role_required("Employee")
 def EmployeeCheckin(booking_id):
      # Find the booking
+    employee_id_query = text("""
+            SELECT ID FROM Employee WHERE UserID = :user_id
+        """)
+    employee_result = db.session.execute(employee_id_query, {'user_id': current_user.Userid}).first()
+        
+    if not employee_result:
+            flash('Employee not found.', 'danger')
+            return redirect(url_for('EmployeeView'))
+
+    employee_id = employee_result[0]
     try:
         booking_query = text("""
             SELECT * FROM BookingHistory WHERE BookingID = :booking_id
@@ -598,6 +753,20 @@ def EmployeeCheckin(booking_id):
         })
         db.session.commit()
 
+        #Insert into ResponsibleFor
+            # Insert into ResponsibleFor
+        insert_responsible = text("""
+            INSERT INTO ResponsibleFor (EmployeeID, CustomerID)
+            VALUES (:EmployeeID, :CustomerID)
+        """)
+
+        db.session.execute(insert_responsible, {
+            'EmployeeID': employee_id,
+            'CustomerID': booking.CustomerID
+        })
+
+        db.session.commit()
+
         # Update the BookingHistory status
         try:
             update_sql = text("UPDATE BookingHistory SET Status = :status WHERE BookingID = :booking_id")
@@ -606,11 +775,13 @@ def EmployeeCheckin(booking_id):
             flash('Check-in successful. Booking status updated to Completed.', 'success')
         except Exception as e:
             db.session.rollback()
-            flash(f'An error occurred while updating booking status: {str(e)}', 'danger')
+            flash(f'An error occurred while updating booking status', 'danger')
+            print(e)
 
     except Exception as e:
         db.session.rollback()
-        flash(f'An error occurred: {str(e)}', 'danger')
+        flash(f'An error occurred', 'danger')
+        print(e)
 
     return redirect(url_for('EmployeeView'))
 
@@ -665,7 +836,57 @@ def signup():
         
     return render_template("signup1.html")
 
+@app.route("/EmployeeSignup", methods=['POST', "GET"])
+def EmployeeSignup():
+    if request.method == "POST":
+        name = request.form.get('EmployeeName')
+        username = request.form.get('username')
+        email = request.form.get('email')
+        password = request.form.get('password')
+        role = request.form.get('role')
+        emp_address = request.form.get('Emp_Address')
+        hoteladd = request.form.get('hoteladd')
+        
+        # Check if the user already exists
+        existing_user_query = text("SELECT * FROM Users WHERE Username = :username")
+        result = db.session.execute(existing_user_query, {'username': username}).first()
 
+        if result:
+            flash('Signup failed: username already exists.', "danger")
+            return redirect(url_for("EmployeeSignup"))
+        
+        # Insert into Users table
+       
+        try:
+            insert_user_query = text("""
+            INSERT INTO Users (Username, Password, Email, Role) 
+            VALUES (:username, :password, :email, 'Employee');
+        """)
+
+            
+            db.session.execute(insert_user_query, {'username': username, 'password': password, 'email': email})
+            db.session.commit()
+
+            # Fetch the newly created user ID
+            new_user_result = db.session.execute(existing_user_query, {'username': username, 'email': email}).first()
+            new_user_id = new_user_result.UserID
+
+            # Insert into Employee table
+            insert_employee_query = text("""
+            INSERT INTO Employee (UserID, Fullname, Address, HotelAddress, Role) 
+            VALUES (:user_id, :name, :emp_address, :hotelAddress, :role);
+        """)
+            
+            db.session.execute(insert_employee_query, {'user_id': new_user_id, 'name': name, 'emp_address': emp_address,'hotelAddress':hoteladd, 'role': role})
+            db.session.commit()
+
+            flash("Employee signup successful.", "success")
+            return redirect(url_for("login")) # Assuming you have a login page for employees
+        except Exception as e:
+            db.session.rollback()
+            flash("Error creating user or customer, try again")
+            print(e)
+    return render_template("EmployeeSignup.html")
 
 
 @app.route("/login", methods=['POST', 'GET'])

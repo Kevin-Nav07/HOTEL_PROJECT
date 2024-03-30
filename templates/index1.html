@@ -40,19 +40,37 @@
             </div>
 
         </div>
+        <div class="container">
+            {% with messages=get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert" style="width: 50%; margin: 0 auto; margin-top: 20px; border: 0 !important;
+                border-radius: 30px !important;">
+                {{ message }}
+                <button type="button" class="custom-close" aria-label="Close"
+                    style="border: none; background: transparent;">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
+        </div>
+
+        <script>
+            document.addEventListener("DOMContentLoaded", function () {
+                var closeButtons = document.querySelectorAll(".custom-close");
+                closeButtons.forEach(function (btn) {
+                    btn.onclick = function () {
+                        var alert = this.parentElement;
+                        alert.style.display = "none";
+                    };
+                });
+            });
+        </script>
         <h1>Hotel Booking Application</h1>
         <p>Find your ideal hotel today</p>
 
-        <!-- bootstrap search button code -->
-        <form action="">
-            <div class="input-group">
-                <input type="text" class="form-control" placeholder="Search">
-                <div class="input-group-append">
-                    <button type="button" class="input-group-text btn">Search</button>
-
-                </div>
-            </div>
-        </form>
 
     </section>
 

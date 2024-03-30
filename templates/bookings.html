@@ -69,17 +69,17 @@
                 });
             });
         </script>
-        <h1>Bookings</h1>
+        <h1>Bookings and Customer View</h1>
         <p>Welcome {{current_userd.Username}}</p>
 
-        <form action="">
-
-            <div class="input-group">
-                <input type="text" class="form-control" placeholder="Search" name="search">
-                <div class="input-group-append">
-                    <button type="button" class="input-group-text btn">Search</button>
-
-                </div>
+        <form action="/view-rooms-info" method="get">
+            <div class="input-group-append">
+                <button type="submit" class="input-group-text btn">Rooms Per Area View</button>
+            </div>
+        </form>
+        <form action="/CustomerInformation" method="get">
+            <div class="input-group-append">
+                <button type="submit" class="input-group-text btn">Customer Information</button>
             </div>
         </form>
 
