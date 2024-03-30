@@ -606,6 +606,78 @@ def EmployeeLogin():
             flash("Invalid credentials", "danger")
     return render_template('EmployeeLogin.html')
 
+
+@app.route("/EmployeeHotelInformation")
+@login_required
+def EmployeeHotelInformation():
+    # Check if the current user is an Employee and their role is "Manager"
+    if current_user.Role == "Employee":
+        employee_info_query = text("SELECT Role FROM Employee WHERE UserID = :user_id")
+        employee_info = db.session.execute(employee_info_query, {'user_id': current_user.Userid}).first()
+
+        if employee_info and employee_info.Role == "Manager":
+            # Query the database for all hotels
+            hotels_query = text("SELECT * FROM Hotel")
+            hotels_list = db.session.execute(hotels_query).fetchall()
+            
+            # Render the template with the hotels data
+            return (render_template("EmployeeHotelInformation.html", hotels_list=hotels_list))
+        else:
+            flash("Access denied. This page is only available to Managers.", "danger")
+            return redirect(url_for('EmployeeView'))
+    else:
+        flash("Access denied. You must be an employee to view this page.", "danger")
+        return redirect(url_for('index'))
+    
+@app.route("/EditHotels/<hotel_address>", methods=["GET", "POST"])
+@login_required
+@role_required("Employee")
+def Edithotels(hotel_address):
+   
+    if request.method == "POST":
+        # Extract form data for the update
+        number_of_rooms = request.form.get('NumberOfRooms')
+        rating = request.form.get('Rating')
+        chain_name = request.form.get('ChainName')
+        area = request.form.get('Area')
+        email = request.form.get('Email')
+
+        try:
+            # Perform the update in the database
+            update_query = text("""
+                UPDATE Hotel
+                SET NumberOfRooms = :number_of_rooms, Rating = :rating, 
+                    ChainName = :chain_name, Area = :area, Email = :email
+                WHERE ADDRESS = :hotel_address
+            """)
+            db.session.execute(update_query, {
+                "hotel_address": hotel_address,
+                "number_of_rooms": number_of_rooms,
+                "rating": rating,
+                "chain_name": chain_name,
+                "area": area,
+                "email": email
+            })
+            db.session.commit()
+            flash("Hotel information updated successfully.", "success")
+            # Redirect back to the hotel information page after successful update
+            return redirect(url_for('EmployeeHotelInformation'))
+        except Exception as e:
+            db.session.rollback()
+            flash("An error occurred while updating hotel information.", "danger")
+            print(e)
+
+    # This part is for the GET request to display the form with existing hotel details
+    hotel_query = text("SELECT * FROM Hotel WHERE ADDRESS = :hotel_address")
+    hotel = db.session.execute(hotel_query, {"hotel_address": hotel_address}).first()
+    
+    if hotel:
+        # Render the EditHotels template, passing the hotel details for GET request
+        return render_template("EditHotels.html", hotel=hotel)
+    else:
+        flash("Hotel not found.", "danger")
+        return redirect(url_for('EmployeeHotelInformation'))
+
 @app.route("/EmployeeView", methods = ["POST", "GET"])
 @login_required
 @role_required("Employee")
@@ -627,6 +699,97 @@ def EmployeeView():
     bookings = db.session.execute(bookings_query, {'hotel_address': hotel_address}).fetchall()
 
     return render_template('EmployeeView.html', bookings_list=bookings)
+
+
+@app.route("/AddHotels", methods=["GET", "POST"])
+@login_required
+@role_required("Employee")  # Only allow managers to add new hotels
+def AddHotels():
+    if request.method == "POST":
+        hotel_address = request.form.get('HotelAddress')
+        number_of_rooms = request.form.get('NumberOfRooms')
+        rating = request.form.get('Rating')
+        chain_name = request.form.get('ChainName')
+        area = request.form.get('Area')
+        email = request.form.get('Email')
+
+        # Check if the hotel chain exists
+        chain_query = text("SELECT NAME FROM HotelChain WHERE NAME = :chain_name")
+        chain_exists = db.session.execute(chain_query, {'chain_name': chain_name}).first()
+
+        if not chain_exists:
+            flash(f"Hotel chain {chain_name} does not exist. Please add the chain first.", "danger")
+            return redirect(url_for('AddHotels'))
+
+        # Check if the hotel already exists
+        hotel_query = text("SELECT ADDRESS FROM Hotel WHERE ADDRESS = :hotel_address")
+        hotel_exists = db.session.execute(hotel_query, {'hotel_address': hotel_address}).first()
+
+        if hotel_exists:
+            flash(f"Hotel with address {hotel_address} already exists.", "danger")
+            return redirect(url_for('AddHotels'))
+
+        try:
+            # Add the new hotel
+            insert_query = text("""
+                INSERT INTO Hotel (ADDRESS, NumberOfRooms, Rating, ChainName, Area, Email) 
+                VALUES (:hotel_address, :number_of_rooms, :rating, :chain_name, :area, :email)
+            """)
+            db.session.execute(insert_query, {
+                'hotel_address': hotel_address,
+                'number_of_rooms': number_of_rooms,
+                'rating': rating,
+                'chain_name': chain_name,
+                'area': area,
+                'email': email
+            })
+            db.session.commit()
+            flash("New hotel added successfully.", "success")
+        except Exception as e:
+            db.session.rollback()
+            flash(f"An error occurred while adding the hotel: {e}", "danger")
+
+        return redirect(url_for('EmployeeHotelInformation'))  # Redirect after POST
+
+     # GET request: Fetch all hotel chains to pass to the template
+    chains_query = text("SELECT NAME FROM HotelChain")
+    chains = db.session.execute(chains_query).fetchall()
+    chain_names = [chain[0] for chain in chains]
+
+    # Render the Add Hotel form, passing through the hotel chains
+    return render_template("AddHotels.html", hotel_chains=chain_names)
+
+@app.route("/DeleteHotel/<string:hotel_address>", methods=["POST", "GET"])
+@login_required
+@role_required("Employee")  # Ensure only employees can access this function
+def DeleteHotel(hotel_address):
+    # Fetch the current employee's details
+    employee_query = text("""
+        SELECT HotelAddress FROM Employee WHERE UserID = :user_id
+    """)
+    employee = db.session.execute(employee_query, {"user_id": current_user.Userid}).first()
+    
+    if not employee:
+        flash("Employee record not found.", "danger")
+        return redirect(url_for('EmployeeHotelInformation'))
+    
+    # Check if the current employee's hotel address matches the hotel address to be deleted
+    if employee.HotelAddress == hotel_address:
+        flash("You do not have permission to delete this hotel.", "danger")
+        return redirect(url_for('EmployeeHotelInformation'))
+    
+    try:
+        # Proceed with deletion since the employee is associated with the hotel
+        delete_query = text("DELETE FROM Hotel WHERE ADDRESS = :hotel_address")
+        db.session.execute(delete_query, {"hotel_address": hotel_address})
+        db.session.commit()
+        flash("Hotel successfully deleted.", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash("An error occurred while deleting the hotel.", "danger")
+        print(e)
+
+    return redirect(url_for('EmployeeHotelInformation'))
 
 @app.route("/EmployeeEditRooms", methods = ["Post", "Get"])
 @login_required
