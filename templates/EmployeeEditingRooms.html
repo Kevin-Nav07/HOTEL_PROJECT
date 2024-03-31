@@ -26,15 +26,14 @@
                 <nav>
 
                     <ul>
-                        <li class="nav-item"><a href="/"> Home </a></li>
-                        <li class="nav-item"><a href="/hotels"> Hotels</a></li>
-                        <li class="nav-item"><a href="/bookings"> Bookings</a></li>
-                        <li class="nav-item"><a href="/bookingView"> Booking View</a></li>
-                        <li class="nav-item"><a href="/SearchRooms"> Search</a></li>
-                        <li class="nav-item"><a href="/rooms"> Rooms </a></li>
-                        <li class="nav-item"><a href="/login"> login</a></li>
-                        <li class="nav-item"><a href="/signup"> Signup</a></li>
-                        <li class="nav-item"><a href="/logout"> logout</a></li>
+                        <li class="nav-item"><a href="/">Home</a></li>
+                        <li class="nav-item"><a href="/bookings">Bookings</a></li>
+                        <li class="nav-item"><a href="/bookingView">Booking View</a></li>
+                        <li class="nav-item"><a href="/SearchRooms">Search</a></li>
+                        <li class="nav-item"><a href="/EmployeeView">Employee View</a></li>
+                        <li class="nav-item"><a href="/login">Login</a></li>
+                        <li class="nav-item"><a href="/signup">Signup</a></li>
+                        <li class="nav-item"><a href="/logout">Logout</a></li>
 
                     </ul>
                 </nav>
@@ -92,11 +91,11 @@
 
                     <div class="form-group">
                         <label for="Extendability">Extendability</label>
-                        <select class="form-control" id="Extendability" name="Extendability">
+                        <select class="form-control" id="Extendability" name="Extendability" required>
 
                             <option value="">Select</option>
-                            <option value="1">True</option>
-                            <option value="0">False</option>
+                            <option value="True">True</option>
+                            <option value="False">False</option>
                         </select>
                     </div>
 
@@ -107,7 +106,7 @@
                     </div>
                     <div class="form-group">
                         <label for="view">View</label>
-                        <select class="form-control" id="view" name="View">
+                        <select class="form-control" id="view" name="View" required>
 
                             <option value="">Select a Category</option>
                             <option value="sea">sea</option>
@@ -116,7 +115,7 @@
                     </div>
                     <div class="form-group">
                         <label for="view">Size</label>
-                        <select class="form-control" id="size" name="size">
+                        <select class="form-control" id="size" name="size" required>
 
                             <option value="">Select a Sizey</option>
                             <option value="single">single</option>
@@ -132,8 +131,12 @@
                     </div>
                     <div class="form-group">
                         <label for="problems">Problems</label>
-                        <input type="text" class="form-control" id="problems" value="{{room.problems}}" name="problems"
-                            required style="color: black;">
+                        <select class="form-control" id="problems" name="problems" required>
+
+                            <option value="">Select</option>
+                            <option value="True">True</option>
+                            <option value="False">False</option>
+                        </select>
                     </div>
 
                     <button type="submit" class="btn btn-primary">Update Information</button>

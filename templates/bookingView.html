@@ -28,15 +28,14 @@
                 <nav>
 
                     <ul>
-                        <li class="nav-item"><a href="/"> Home </a></li>
-                        <li class="nav-item"><a href="/hotels"> Hotels</a></li>
-                        <li class="nav-item"><a href="/bookings"> Bookings</a></li>
-                        <li class="nav-item"><a href="/bookingView"> Booking View</a></li>
-                        <li class="nav-item"><a href="/SearchRooms"> Search</a></li>
-                        <li class="nav-item"><a href="/rooms"> Rooms </a></li>
-                        <li class="nav-item"><a href="/login"> login</a></li>
-                        <li class="nav-item"><a href="/signup"> Signup</a></li>
-                        <li class="nav-item"><a href="/logout"> logout</a></li>
+                        <li class="nav-item"><a href="/">Home</a></li>
+                        <li class="nav-item"><a href="/bookings">Bookings</a></li>
+                        <li class="nav-item"><a href="/bookingView">Booking View</a></li>
+                        <li class="nav-item"><a href="/SearchRooms">Search</a></li>
+                        <li class="nav-item"><a href="/EmployeeView">Employee View</a></li>
+                        <li class="nav-item"><a href="/login">Login</a></li>
+                        <li class="nav-item"><a href="/signup">Signup</a></li>
+                        <li class="nav-item"><a href="/logout">Logout</a></li>
 
                     </ul>
                 </nav>
@@ -98,8 +97,8 @@
                 <td>{{post.EndDate}}</td>
                 <td>{{post.Status}}</td>
                 <td><a href="/edit/{{post.BookingID}}"><button class="btn btn-primary">Edit </button> </a> </td>
-                <td><a href="/delete/{{post.BookingID}}"><button
-                            onclick="return confirm('Are you sure to Delete data');" class="btn btn-danger">Delete
+                <td><a href="/cancel/{{post.BookingID}}"><button onclick="return confirm('Are you sure to cancel');"
+                            class="btn btn-danger">Cancel
                         </button> </a> </td>
             </tr>
             {% endfor %}

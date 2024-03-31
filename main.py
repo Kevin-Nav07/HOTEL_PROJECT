@@ -90,7 +90,7 @@ class Room(db.Model):
     Size = db.Column(db.String(255))
     RoommCapacity = db.Column(db.Integer())
     Amenities = db.Column(db.String(255))
-    problems = db.Column(db.String(255))
+    problems = db.Column(db.Boolean)
     
     # Relationships if needed
 
@@ -188,7 +188,7 @@ def bookingView():
         SELECT bh.*
         FROM BookingHistory bh
         JOIN Customer c ON bh.CustomerID = c.ID
-        WHERE c.UserID = :userid;
+        WHERE c.UserID = :userid AND bh.Status != 'cancelled';
     """)
     result = db.session.execute(query, {'userid': user_id})
     
@@ -235,22 +235,21 @@ def delete_employee_account():
     return redirect(url_for('index'))
 
 
-@app.route("/delete/<string:BookingID>", methods=["POST", "GET"])
+@app.route("/cancel/<string:BookingID>", methods=["POST", "GET"])
 @login_required
-def delete(BookingID):
-    # Prepare the SQL delete query with parameter placeholders
-    delete_query = text("DELETE FROM BookingHistory WHERE BookingID = :BookingID")
+def cancel(BookingID):
+    # Prepare the SQL update query to change the status to "cancelled"
+    update_query = text("UPDATE BookingHistory SET Status = 'cancelled' WHERE BookingID = :BookingID")
 
-    # Execute the delete query with the actual BookingID parameter
-    db.session.execute(delete_query, {'BookingID': BookingID})
+    # Execute the update query with the actual BookingID parameter
+    db.session.execute(update_query, {'BookingID': BookingID})
     db.session.commit()
 
-    # Optionally, flash a message to indicate successful deletion
-    flash('Booking deleted successfully!', 'success')
+    # Flash a message to indicate successful cancellation
+    flash('Booking cancelled successfully!', 'success')
 
     # Redirect to another page, e.g., the booking view page
     return redirect(url_for('bookingView'))
-
 
 @app.route("/CustomerInformation", methods=["GET", "POST"])
 @login_required
@@ -371,28 +370,23 @@ def searchRooms():
     return render_template('SearchRooms.html', hotel_chain_list=hotel_chains)
 
 
-@app.route("/edit/<string:BookingID>", methods = ["Post", "Get"])
+@app.route("/edit/<string:BookingID>", methods=["POST", "GET"])
 @login_required
 @role_required("Customer")
 def edit(BookingID):
-     post = BookingHistory.query.filter_by(BookingID=BookingID).first()
-     if request.method == "POST":
+    if request.method == "POST":
         start_date = request.form.get('start_date')
         end_date = request.form.get('end_date')
         hotel_address = request.form.get('BranchAddress')  # Ensure this matches your form field name
         room_number = request.form.get('room_number')
 
-        # Prepare SQL query to update booking
-
         try:
-
+            # Update booking details using raw SQL
             update_query = text("""
                 UPDATE BookingHistory
                 SET StartDate = :start_date, EndDate = :end_date, HotelAddress = :hotel_address, RoomNumber = :room_number
                 WHERE BookingID = :BookingID;
             """)
-
-            # Execute SQL query with provided parameters
             db.session.execute(update_query, {
                 'start_date': start_date,
                 'end_date': end_date,
@@ -401,18 +395,32 @@ def edit(BookingID):
                 'BookingID': BookingID
             })
             db.session.commit()
+            flash("Booking Updated", "success")
+         
         except Exception as e:
             db.session.rollback()
-            flash("Booking information update failed, invalid hotel information")
-            print("error while updating booking: ", e)
-            return render_template("edit.html", posts = post)
-        flash("Booking Updated", "Success")
-        return (redirect(url_for("bookingView")))
-        
-     else:
-         print(post.HotelAddress)
-         return render_template('edit.html',posts = post)
-        
+            flash("Booking information update failed, please check your inputs", "danger")
+            print(f"Error while updating booking: {e}")
+            # No need to return here, let it go to the GET method part for the page rendering
+        return redirect(url_for('bookingView'))       
+
+    # For GET request or in case of an error, fetch booking details to show on the edit page
+    try:
+        # Fetch booking details using raw SQL
+        fetch_query = text("""
+            SELECT * FROM BookingHistory WHERE BookingID = :BookingID;
+        """)
+        booking_details = db.session.execute(fetch_query, {'BookingID': BookingID}).fetchone()
+        if booking_details:
+            return render_template('edit.html', posts=booking_details)
+        else:
+            flash("No booking found with the provided ID", "danger")
+            return redirect(url_for('bookingView'))
+    except Exception as e:
+        flash("An error occurred while fetching booking details", "danger")
+        print(f"Error while fetching booking details: {e}")
+        return redirect(url_for('bookingView'))
+
 
 @app.route("/bookings", methods=['POST', 'GET'])
 @login_required
@@ -424,13 +432,13 @@ def bookings():
         end_date = request.form.get('end_date')
         hotel_address = request.form.get('BranchAddress')
         room_number = request.form.get('room_number')
+        current_id = current_user.Userid  
 
-        # First, find the customer ID based on the email
-        sql_query = text("SELECT ID FROM Customer WHERE Email = :email")
-        result = db.session.execute(sql_query, {'email': email})
+        # First, find the customer ID based on the current user ID
+        sql_query = text("SELECT ID FROM Customer WHERE UserID = :Userid")
+        result = db.session.execute(sql_query, {'Userid': current_id})
         customer_record = result.fetchone()
         try:
-
             if customer_record:
                 customer_id = customer_record[0]
                 # Now insert the booking into the BookingHistory table using raw SQL
@@ -446,17 +454,36 @@ def bookings():
                     'end_date': end_date
                 })
                 db.session.commit()
+
+                # Check if a BooksAt record already exists
+                check_books_at_query = text("""
+                    SELECT * FROM BooksAt WHERE CustomerID = :customer_id AND HotelAddress = :hotel_address
+                """)
+                books_at_record = db.session.execute(check_books_at_query, {
+                    'customer_id': customer_id,
+                    'hotel_address': hotel_address
+                }).fetchone()
+
+                if not books_at_record:
+                    # Insert into BooksAt table only if no record exists
+                    insert_books_at_query = text("""
+                        INSERT INTO BooksAt (CustomerID, HotelAddress) VALUES (:customer_id, :hotel_address)
+                    """)
+                    db.session.execute(insert_books_at_query, {
+                        'customer_id': customer_id,
+                        'hotel_address': hotel_address
+                    })
+                    db.session.commit()
+
                 flash('Booking successful!', "success")
             else:
                 flash('Customer not found!', "danger")
         except Exception as e:
             db.session.rollback()
-            print("Error creating booking ", e)
+            print("Error during booking: ", e)
             flash("Error creating booking, possibly invalid hotel information", "danger")
-
-   
-
     return render_template('bookings.html', current_userd = current_user)
+
 
 
 @app.route("/EmployeeInformation", methods = ["Post", "Get"])
@@ -695,7 +722,7 @@ def EmployeeView():
     # Fetch the bookings for the hotel using raw SQL
     bookings_query = text("""
     SELECT * FROM BookingHistory
-    WHERE HotelAddress = :hotel_address AND Status != 'Completed' """)
+    WHERE HotelAddress = :hotel_address AND Status = 'booked' """)
     bookings = db.session.execute(bookings_query, {'hotel_address': hotel_address}).fetchall()
 
     return render_template('EmployeeView.html', bookings_list=bookings)
@@ -758,6 +785,70 @@ def AddHotels():
 
     # Render the Add Hotel form, passing through the hotel chains
     return render_template("AddHotels.html", hotel_chains=chain_names)
+
+
+@app.route("/AddRooms", methods=['GET', 'POST'])
+@login_required
+@role_required("Employee")  # Make sure only employees can add rooms
+def AddRooms():
+    if request.method == 'GET':
+        # Render the form page. 
+        return render_template("AddRooms.html")
+    elif request.method == 'POST':
+        room_number = request.form.get('RoomNumber')
+        hotel_address = request.form.get('HotelAddress')
+        extendability = request.form.get('Extendability') == 'true'
+        room_problems = request.form.get('roomProblems') == 'true'
+        price = request.form.get('Price')
+        view = request.form.get('View')
+        size = request.form.get('size')
+        capacity = request.form.get('RoomCapacity')
+        amenities = request.form.get('Amenities')
+        booked = False
+
+        # Check if the hotel address exists
+        hotel_query = text("SELECT COUNT(*) FROM Hotel WHERE ADDRESS = :hotel_address")
+        hotel_exists = db.session.execute(hotel_query, {'hotel_address': hotel_address}).scalar() > 0
+
+        if not hotel_exists:
+            flash('Hotel address does not exist.', 'danger')
+            return redirect(url_for('AddRooms'))
+
+        # Check if the room already exists
+        room_query = text("SELECT COUNT(*) FROM Room WHERE RoomNumber = :room_number AND HotelAddress = :hotel_address")
+        room_exists = db.session.execute(room_query, {'room_number': room_number, 'hotel_address': hotel_address}).scalar() > 0
+
+        if room_exists:
+            flash('Room already exists in this hotel.', 'danger')
+            return redirect(url_for('AddRooms'))
+
+        # Add the room since it doesn't exist
+        insert_room_query = text("""
+        INSERT INTO Room (RoomNumber, HotelAddress, Extendability, problems, Price, View, Size, RoomCapacity, Amenities, booked)
+        VALUES (:room_number, :hotel_address, :extendability, :room_problems, :price, :view, :size, :capacity, :amenities, :booked)
+        """)
+        try:
+            db.session.execute(insert_room_query, {
+                'room_number': room_number,
+                'hotel_address': hotel_address,
+                'extendability': extendability,
+                'room_problems': room_problems,
+                'price': price,
+                'view': view,
+                'size': size,
+                'capacity': capacity,
+                'amenities': amenities,
+                'booked': booked
+            })
+            db.session.commit()
+            flash('Room added successfully.', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error adding room', 'danger')
+            print(e)
+
+        return redirect(url_for('EmployeeEditRooms'))
+
 
 @app.route("/DeleteHotel/<string:hotel_address>", methods=["POST", "GET"])
 @login_required
@@ -830,7 +921,7 @@ def view_rooms_info():
     available_rooms = db.session.execute(available_rooms_query).fetchall()
     
     # Query the TotalCapacityPerHotel view
-    total_capacity_query = text("SELECT * FROM HotelRoomCapacities")
+    total_capacity_query = text("SELECT * FROM TotalCapacityPerHotel")
     total_capacity = db.session.execute(total_capacity_query).fetchall()
     
     return render_template("rooms_info.html", available_rooms=available_rooms, total_capacity=total_capacity)
@@ -874,22 +965,24 @@ def delete_customer_account():
     return redirect(url_for('index'))
 
 
-@app.route("/EmployeeCheckin/<string:booking_id>", methods = ["Post", "Get"])
+@app.route("/EmployeeCheckin/<string:booking_id>", methods=["Post", "Get"])
 @login_required
 @role_required("Employee")
 def EmployeeCheckin(booking_id):
-     # Find the booking
+    # Find the employee
     employee_id_query = text("""
             SELECT ID FROM Employee WHERE UserID = :user_id
         """)
     employee_result = db.session.execute(employee_id_query, {'user_id': current_user.Userid}).first()
-        
+
     if not employee_result:
-            flash('Employee not found.', 'danger')
-            return redirect(url_for('EmployeeView'))
+        flash('Employee not found.', 'danger')
+        return redirect(url_for('EmployeeView'))
 
     employee_id = employee_result[0]
+
     try:
+        # Find the booking
         booking_query = text("""
             SELECT * FROM BookingHistory WHERE BookingID = :booking_id
         """)
@@ -899,54 +992,54 @@ def EmployeeCheckin(booking_id):
             flash('Booking not found.', 'danger')
             return redirect(url_for('EmployeeView'))
 
-    
-
         # Create a new renting record without BookingID
         insert_renting = text("""
             INSERT INTO Renting (StartDate, EndDate, RoomNumber, HotelAddress, CustomerID, Status)
-            VALUES (:StartDate, :EndDate, :RoomNumber,:HotelAddress, :CustomerID, 'Checked-in')
+            VALUES (:StartDate, :EndDate, :RoomNumber, :HotelAddress, :CustomerID, 'Checked-in')
         """)
-
         db.session.execute(insert_renting, {
             'StartDate': booking.StartDate,
             'EndDate': booking.EndDate,
             'RoomNumber': booking.RoomNumber,
-            'HotelAddress':booking.HotelAddress,
+            'HotelAddress': booking.HotelAddress,
             'CustomerID': booking.CustomerID
         })
         db.session.commit()
 
-        #Insert into ResponsibleFor
-            # Insert into ResponsibleFor
-        insert_responsible = text("""
-            INSERT INTO ResponsibleFor (EmployeeID, CustomerID)
-            VALUES (:EmployeeID, :CustomerID)
+        # Check if ResponsibleFor entry exists
+        responsible_check_query = text("""
+            SELECT * FROM ResponsibleFor WHERE EmployeeID = :EmployeeID AND CustomerID = :CustomerID
         """)
-
-        db.session.execute(insert_responsible, {
+        responsible_exists = db.session.execute(responsible_check_query, {
             'EmployeeID': employee_id,
             'CustomerID': booking.CustomerID
-        })
+        }).fetchone()
 
-        db.session.commit()
+        if not responsible_exists:
+            # Insert into ResponsibleFor if no entry exists
+            insert_responsible = text("""
+                INSERT INTO ResponsibleFor (EmployeeID, CustomerID)
+                VALUES (:EmployeeID, :CustomerID)
+            """)
+            db.session.execute(insert_responsible, {
+                'EmployeeID': employee_id,
+                'CustomerID': booking.CustomerID
+            })
+            db.session.commit()
 
         # Update the BookingHistory status
-        try:
-            update_sql = text("UPDATE BookingHistory SET Status = :status WHERE BookingID = :booking_id")
-            db.session.execute(update_sql, {'status': 'Completed', 'booking_id': booking_id})
-            db.session.commit()
-            flash('Check-in successful. Booking status updated to Completed.', 'success')
-        except Exception as e:
-            db.session.rollback()
-            flash(f'An error occurred while updating booking status', 'danger')
-            print(e)
+        update_sql = text("UPDATE BookingHistory SET Status = 'Completed' WHERE BookingID = :booking_id")
+        db.session.execute(update_sql, {'booking_id': booking_id})
+        db.session.commit()
 
+        flash('Check-in successful. Booking status updated to Completed.', 'success')
     except Exception as e:
         db.session.rollback()
-        flash(f'An error occurred', 'danger')
+        flash('An error occurred', 'danger')
         print(e)
 
     return redirect(url_for('EmployeeView'))
+
 
 
 

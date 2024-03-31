@@ -28,15 +28,14 @@
                 <nav>
 
                     <ul>
-                        <li class="nav-item"><a href="/"> Home </a></li>
-                        <li class="nav-item"><a href="/hotels"> Hotels</a></li>
-                        <li class="nav-item"><a href="/bookings"> Bookings</a></li>
-                        <li class="nav-item"><a href="/bookingView"> Booking View</a></li>
-                        <li class="nav-item"><a href="/SearchRooms"> Search</a></li>
-                        <li class="nav-item"><a href="/rooms"> Rooms </a></li>
-                        <li class="nav-item"><a href="/login"> login</a></li>
-                        <li class="nav-item"><a href="/signup"> Signup</a></li>
-                        <li class="nav-item"><a href="/logout"> logout</a></li>
+                        <li class="nav-item"><a href="/">Home</a></li>
+                        <li class="nav-item"><a href="/bookings">Bookings</a></li>
+                        <li class="nav-item"><a href="/bookingView">Booking View</a></li>
+                        <li class="nav-item"><a href="/SearchRooms">Search</a></li>
+                        <li class="nav-item"><a href="/EmployeeView">Employee View</a></li>
+                        <li class="nav-item"><a href="/login">Login</a></li>
+                        <li class="nav-item"><a href="/signup">Signup</a></li>
+                        <li class="nav-item"><a href="/logout">Logout</a></li>
 
                     </ul>
                 </nav>
@@ -75,6 +74,12 @@
         <h1>Employee Rooms View</h1>
         <p>Welcome</p>
     </section>
+    <form action="/AddRooms" method="get">
+        <div class="input-group-append">
+            <button type="submit" class="input-group-text btn">Add Rooms</button>
+        </div>
+    </form>
+
 
     <table class="table">
         <thead class="thead-light">
@@ -82,10 +87,12 @@
                 <th scope="col">Room Number</th>
                 <th scope="col">Hotel Address</th>
                 <th scope="col">Capacity</th>
+                <th scope="col">Extendability</th>
                 <th scope="col">Price</th>
                 <th scope="col">View</th>
                 <th scope="col">Size</th>
-                <th scope="col">Status</th>
+                <th scope="col">Room Problems</th>
+                <th scope="col">Amenities</th>
             </tr>
         </thead>
         <tbody>
@@ -94,10 +101,12 @@
                 <td>{{ room.RoomNumber }}</td>
                 <td>{{ room.HotelAddress }}</td>
                 <td>{{ room.Capacity }}</td>
+                <td>{{ room.Extendability }}</td>
                 <td>{{ room.Price }}</td>
                 <td>{{ room.View }}</td>
-                <td>{{ room.Size}}</td>
-                <td>{{ room.Status}}</td>
+                <td>{{ room.Size }}</td>
+                <td>{{ room.Problems}}</td>
+                <td>{{ room.Amenities}}</td>
                 <td>
                     <a href="/EmployeeEditingRooms/{{ room.RoomNumber }}"><button
                             class="btn btn-primary">Edit</button></a>

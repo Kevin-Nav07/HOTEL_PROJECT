@@ -28,15 +28,14 @@
                 <nav>
 
                     <ul>
-                        <li class="nav-item"><a href="/"> Home </a></li>
-                        <li class="nav-item"><a href="/hotels"> Hotels</a></li>
-                        <li class="nav-item"><a href="/bookings"> Bookings</a></li>
-                        <li class="nav-item"><a href="/bookingView"> Booking View</a></li>
-                        <li class="nav-item"><a href="/SearchRooms"> Search</a></li>
-                        <li class="nav-item"><a href="/rooms"> Rooms </a></li>
-                        <li class="nav-item"><a href="/login"> login</a></li>
-                        <li class="nav-item"><a href="/signup"> Signup</a></li>
-                        <li class="nav-item"><a href="/logout"> logout</a></li>
+                        <li class="nav-item"><a href="/">Home</a></li>
+                        <li class="nav-item"><a href="/bookings">Bookings</a></li>
+                        <li class="nav-item"><a href="/bookingView">Booking View</a></li>
+                        <li class="nav-item"><a href="/SearchRooms">Search</a></li>
+                        <li class="nav-item"><a href="/EmployeeView">Employee View</a></li>
+                        <li class="nav-item"><a href="/login">Login</a></li>
+                        <li class="nav-item"><a href="/signup">Signup</a></li>
+                        <li class="nav-item"><a href="/logout">Logout</a></li>
 
                     </ul>
                 </nav>
@@ -85,6 +84,7 @@
                 <th scope="col">Extendability</th>
                 <th scope="col">Price</th>
                 <th scope="col">View</th>
+                <th scope="col">Size</th>
                 <th scope="col">Room Problems</th>
                 <th scope="col">Amenities</th>
             </tr>
@@ -98,7 +98,8 @@
                 <td>{{ room.Extendability }}</td>
                 <td>{{ room.Price }}</td>
                 <td>{{ room.View }}</td>
-                <td>{{ room.Problems}}</td>
+                <td>{{ room.Size }}</td>
+                <td>{{ room.problems}}</td>
                 <td>{{ room.Amenities}}</td>
             </tr>
             {% endfor %}
