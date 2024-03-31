@@ -1,4 +1,0 @@
-List of things to add to the site: 
-
-Customer edit profile
-Customer Check in 

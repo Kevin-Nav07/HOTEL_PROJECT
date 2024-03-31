@@ -12,7 +12,7 @@ from flask_mail import Mail
 
 db = SQLAlchemy()
 app = Flask(__name__)
-app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://root:@localhost/newest_hotel_testing"
+app.config["SQLALCHEMY_DATABASE_URI"] = "mysql+pymysql://root:@localhost/hotel_finaldb"
 db.init_app(app)
 
 app.secret_key = 'kevin_science'
