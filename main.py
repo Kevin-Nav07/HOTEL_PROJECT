@@ -47,13 +47,14 @@ def get_chains():
     return chain_list
 
 
-# Creating db models (tables)
+# Creating db models (tables) but are hardly used and only as a backup reference
+
 class HotelChain(db.Model):
     __tablename__ = 'hotelchain'
     NAME = db.Column(db.String(255), primary_key=True)
     ADDRESS = db.Column(db.String(255))
     NumberOfHotels = db.Column(db.Integer)
-    PhoneNumber = db.Column(db.String(20))  # Change to String if your phone numbers include non-numeric characters
+    PhoneNumber = db.Column(db.String(20))  
     Email = db.Column(db.String(255))
     
 
@@ -78,7 +79,7 @@ class Employee(db.Model):
     Fullname = db.Column(db.String(255))
     HotelAddress = db.Column(db.String(255), db.ForeignKey('hotel.ADDRESS'))
     Role = db.Column(db.String(255))
-    # Relationship to User table if needed
+   
 
 class Room(db.Model):
     __tablename__ = 'room'
@@ -92,7 +93,7 @@ class Room(db.Model):
     Amenities = db.Column(db.String(255))
     problems = db.Column(db.Boolean)
     
-    # Relationships if needed
+    
 
 class BookingHistory(db.Model):
     __tablename__ = 'bookinghistory'
@@ -104,7 +105,7 @@ class BookingHistory(db.Model):
     StartDate = db.Column(db.Date)
     EndDate = db.Column(db.Date)
     Status = db.Column(db.String(255))
-    # Relationships to Customer and Room tables if needed
+   
 
 class Renting(db.Model):
     __tablename__ = 'renting'
@@ -114,7 +115,7 @@ class Renting(db.Model):
     HotelAddress = db.Column(db.String(255), db.ForeignKey('Hotel.ADDRESS'))
     StartDate = db.Column(db.Date, nullable=False)
     EndDate = db.Column(db.Date, nullable=False)
-    Status = db.Column(db.String(255), nullable=False)  # e.g., "Checked-in", "Completed"
+    Status = db.Column(db.String(255), nullable=False)  # e.g., "Checked-in", "Checked-out"
 
     
 class Hotel(db.Model):
@@ -138,33 +139,13 @@ class Users(UserMixin,db.Model):
         return self.Userid
 
 
-
+##homepage
 @app.route("/")
 def index():
     return render_template("index1.html")
 
-@app.route("/test")
-def hello_world():
-    try:
-        # Query the first hotel chain
-        first_hotel_chain = HotelChain.query.all()
-        for i in first_hotel_chain:
-            # Construct a response string with details of the first hotel chain
-            response = (f"Hotel Chain Name: {i.NAME}, "
-                        f"Address: {i.ADDRESS}, "
-                        f"Number Of Hotels: {i.NumberOfHotels}, "
-                        f"Phone Number: {i.PhoneNumber}, "
-                        f"Email: {i.Email}")
-            return response
-        else:
-            return "No hotel chains found in the database."
-    except Exception as e:
-        return f"An error occurred: {str(e)}"
     
 
-@app.route("/hotels")
-def hotels():
-    return render_template("hotels.html")
 
 def role_required(*roles):
     def wrapper(fn):
@@ -337,7 +318,7 @@ def searchRooms():
         if hotel_chain:
             query += " AND h.ChainName = :hotel_chain"
             query_params['hotel_chain'] = hotel_chain
-        if hotel_category:  # Assuming this refers to hotel rating
+        if hotel_category: #this refers to hotel rating
             query += " AND h.Rating = :hotel_category"
             query_params['hotel_category'] = hotel_category
         if total_rooms:
@@ -377,7 +358,7 @@ def edit(BookingID):
     if request.method == "POST":
         start_date = request.form.get('start_date')
         end_date = request.form.get('end_date')
-        hotel_address = request.form.get('BranchAddress')  # Ensure this matches your form field name
+        hotel_address = request.form.get('BranchAddress')  # Ensure this matches form field name
         room_number = request.form.get('room_number')
 
         try:
@@ -401,7 +382,7 @@ def edit(BookingID):
             db.session.rollback()
             flash("Booking information update failed, please check your inputs", "danger")
             print(f"Error while updating booking: {e}")
-            # No need to return here, let it go to the GET method part for the page rendering
+           
         return redirect(url_for('bookingView'))       
 
     # For GET request or in case of an error, fetch booking details to show on the edit page
@@ -560,7 +541,7 @@ def deleteRoom(Roomnum):
     # Optionally, flash a message to indicate successful deletion
     flash('Room deleted successfully!', 'success')
 
-    # Redirect to another page, e.g., the booking view page
+    # Redirect to another page,
     return redirect(url_for('EmployeeEditRooms'))
 @app.route("/EmployeeEditingRooms/<string:room_number>", methods=["GET", "POST"])
 @login_required
@@ -730,7 +711,7 @@ def EmployeeView():
 
 @app.route("/AddHotels", methods=["GET", "POST"])
 @login_required
-@role_required("Employee")  # Only allow managers to add new hotels
+@role_required("Employee") 
 def AddHotels():
     if request.method == "POST":
         hotel_address = request.form.get('HotelAddress')
@@ -1040,7 +1021,60 @@ def EmployeeCheckin(booking_id):
 
     return redirect(url_for('EmployeeView'))
 
+@app.route("/EmployeeCheckout/<int:renting_id>", methods=["POST", "GET"])
+@login_required
+def EmployeeCheckout(renting_id):
+    try:
+        # First, update the status of the renting to "Checked-out".
+        
+        db.session.execute(text("UPDATE Renting SET Status = 'Checked-out' WHERE RentingID = :renting_id"), {'renting_id': renting_id})
 
+        # Then, find the associated room number and hotel address for the renting.
+        room_details = db.session.execute(text("SELECT RoomNumber, HotelAddress FROM Renting WHERE RentingID = :renting_id"), {'renting_id': renting_id}).fetchone()
+
+        if room_details:
+            room_number, hotel_address = room_details
+            # Now, set the 'booked' attribute of the associated room to false.
+            db.session.execute(text("UPDATE Room SET booked = False WHERE RoomNumber = :room_number AND HotelAddress = :hotel_address"), {'room_number': room_number, 'hotel_address': hotel_address})
+
+            db.session.commit()
+            flash("Checkout successful, and room status updated.", "success")
+        else:
+            flash("Renting details not found.", "danger")
+
+    except Exception as e:
+        db.session.rollback()
+        flash(f"An error occurred during checkout: ", "danger")
+        print(e)
+
+    return redirect(url_for('RentingView'))
+
+
+@app.route("/RentingView")
+@login_required
+def RentingView():
+
+    user_id = current_user.Userid  
+
+    try:
+        # Fetch rentings for customers this employee is responsible for.
+       
+        renting_query = text("""
+            SELECT r.* FROM Renting r
+            JOIN ResponsibleFor rf ON r.CustomerID = rf.CustomerID
+            JOIN Employee e ON rf.EmployeeID = e.ID
+            WHERE e.UserID = :user_id;
+        """)
+
+        renting_result = db.session.execute(renting_query, {'user_id': user_id})
+        rentings = renting_result.fetchall()
+
+        # Pass the fetched rentings to the template.
+        return render_template("RentingView.html", renting_list=rentings)
+
+    except Exception as e:
+        flash(f"An error occurred while fetching renting information: {e}", "danger")
+        return redirect(url_for('EmployeeView'))  
 
 
 
@@ -1109,6 +1143,15 @@ def EmployeeSignup():
 
         if result:
             flash('Signup failed: username already exists.', "danger")
+            return redirect(url_for("EmployeeSignup"))
+        
+        
+         # Check if the hotel exists
+        existing_hotel_query = text("SELECT * FROM Hotel WHERE ADDRESS = :hoteladd")
+        existing_hotel_result = db.session.execute(existing_hotel_query, {'hoteladd': hoteladd}).first()
+
+        if not existing_hotel_result:
+            flash('Signup failed: Hotel does not exist.', "danger")
             return redirect(url_for("EmployeeSignup"))
         
         # Insert into Users table
